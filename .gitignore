@@ -1,4 +1,4 @@
-# Secrets
+# Secrets should be ignored
 .env
 config/client_secret.json
 .streamlit/secrets.toml
