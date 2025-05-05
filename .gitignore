@@ -1,0 +1,10 @@
+# Secrets
+.env
+config/client_secret.json
+.streamlit/secrets.toml
+
+# Local DB & cache
+data/*.db
+users/
+__pycache__/
+*.pyc
