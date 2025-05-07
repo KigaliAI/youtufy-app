@@ -1,14 +1,11 @@
 import streamlit as st
 st.set_page_config(page_title="YouTufy", layout="wide")  # ✅ This to the top
-
 import pandas as pd
 from datetime import datetime
 import sys
 import os
-
 # Adjusted backend path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend")))
-
 from backend.auth import get_user_credentials
 from backend.youtube import fetch_subscriptions
 
