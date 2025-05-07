@@ -5,8 +5,6 @@ from backend.auth import get_user_credentials
 from backend.youtube import fetch_subscriptions
 from app.components import channel_card
 import sys
-sys.path.append("./backend")
-from auth import get_user_credentials
 
 st.set_page_config(page_title="YouTufy", layout="wide")
 
