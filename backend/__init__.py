@@ -1,1 +1,2 @@
-# (This file can be left blank/empty)
+# (This file is left blank/empty)
+
