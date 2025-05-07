@@ -27,7 +27,7 @@ if user_email:
         st.warning("⚠️ No subscriptions found or data could not be fetched.")
         st.stop()
 
-    # ✅ Safe numeric formatting
+    # ✅ Safe formatting
     for col in ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.viewCount']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -65,3 +65,5 @@ else:
         "<a href='https://kigaliai.github.io/YouTufy/terms.html' target='_blank'>Terms of Service</a></p>",
         unsafe_allow_html=True
     )
+
+
