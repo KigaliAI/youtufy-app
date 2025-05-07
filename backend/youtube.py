@@ -1,8 +1,10 @@
-import json
 import os
+import json
 import pandas as pd
+import streamlit as st
 from googleapiclient.discovery import build
 
+@st.cache_data(show_spinner=False, ttl=3600)
 def fetch_subscriptions(creds, user_email):
     # ✅ Validate credentials before proceeding
     if not creds or not creds.valid:
@@ -28,7 +30,7 @@ def fetch_subscriptions(creds, user_email):
                 break
         except Exception as e:
             print(f"❌ Error fetching subscriptions: {e}")
-            return pd.DataFrame()  # Return empty DataFrame if API call fails
+            return pd.DataFrame()
 
     # 🧠 Step 2: Extract channel IDs
     channel_ids = [
@@ -84,11 +86,14 @@ def fetch_subscriptions(creds, user_email):
         except Exception as e:
             print(f"❌ Error fetching channel metadata: {e}")
 
-    # 📎 Step 4: Save user data (optional backup)
-    user_dir = os.path.join("data", "user_subscriptions", user_email)
-    os.makedirs(user_dir, exist_ok=True)
-    with open(f"{user_dir}/youtube_subscriptions.json", 'w', encoding='utf-8') as f:
-        json.dump(channel_data, f, indent=2, ensure_ascii=False)
+    # 📎 Step 4: Optional backup (disable if not needed)
+    try:
+        user_dir = os.path.join("data", "user_subscriptions", user_email)
+        os.makedirs(user_dir, exist_ok=True)
+        with open(f"{user_dir}/youtube_subscriptions.json", 'w', encoding='utf-8') as f:
+            json.dump(channel_data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"⚠️ Failed to save backup data: {e}")
 
     # ✅ Step 5: Return DataFrame
     return pd.DataFrame(channel_data)
