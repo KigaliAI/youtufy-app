@@ -1,10 +1,11 @@
 import sys
 import os
 
-backend_path = os.path.dirname(__file__)  # Get current script directory
-sys.path.insert(0, backend_path)  # Set path explicitly
+# Dynamically adjust backend path
+backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
+sys.path.insert(0, backend_path)
 
-print(f"🔎 Debug: Backend path added: {backend_path}")  # ✅ TEMP Debugging Line
+print(f"🔎 Debug: Backend path added: {backend_path}")  # ✅ Debugging
 
 from backend.auth import get_user_credentials
 from backend.youtube import fetch_subscriptions
