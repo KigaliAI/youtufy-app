@@ -3,10 +3,13 @@ import pandas as pd
 from datetime import datetime
 import sys
 import os
-# Dynamically adjust backend path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend")))
-from backend.auth import get_user_credentials
-from backend.youtube import fetch_subscriptions
+
+backend_exists = os.path.exists(os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend")))
+st.write(f"Backend folder exists in deployment: {backend_exists}")
+
+if backend_exists:
+    backend_files = os.listdir(os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend")))
+    st.write("Backend folder contents:", backend_files)
 
 st.set_page_config(page_title="YouTufy", layout="wide")
 
