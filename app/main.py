@@ -1,17 +1,16 @@
 import streamlit as st
+st.set_page_config(page_title="YouTufy", layout="wide")  # ✅ This to the top
+
 import pandas as pd
 from datetime import datetime
 import sys
 import os
 
-backend_exists = os.path.exists(os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend")))
-st.write(f"Backend folder exists in deployment: {backend_exists}")
+# Adjusted backend path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend")))
 
-if backend_exists:
-    backend_files = os.listdir(os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend")))
-    st.write("Backend folder contents:", backend_files)
-
-st.set_page_config(page_title="YouTufy", layout="wide")
+from backend.auth import get_user_credentials
+from backend.youtube import fetch_subscriptions
 
 # -------------------------------
 # 👤 Check session (logged in?)
