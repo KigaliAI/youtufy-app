@@ -5,20 +5,13 @@ import pandas as pd
 from datetime import datetime
 
 # -------------------------------
-# ✅ Dynamically adjust backend path
+# ✅ Adjust backend import path
 # -------------------------------
 backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
 sys.path.insert(0, backend_path)
 
-# ✅ Debug: Show import-related context
-print("🗂️ Current working directory:", os.getcwd())
-print("📁 Backend path added to sys.path:", backend_path)
-print("📄 Files in backend path:", os.listdir(backend_path))
-
 # -------------------------------
-# ✅ Import backend modules (after path is adjusted)
-# Use relative import based on path injection
-# Remove `backend.` prefix since we already inserted backend to sys.path
+# ✅ Import backend modules
 # -------------------------------
 try:
     from auth import get_user_credentials
@@ -27,8 +20,15 @@ except ModuleNotFoundError as e:
     st.error("❌ Failed to import backend modules.")
     st.stop()
 
+# 🔧 Optional: try to import channel_card if it's defined in a utility
+try:
+    from utils.display import channel_card  # adjust path if needed
+except:
+    def channel_card(row):
+        st.write(f"📺 **{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
+
 # -------------------------------
-# 👤 Check session (logged in?)
+# 👤 User session check
 # -------------------------------
 user_email = st.session_state.get("user")
 username = st.session_state.get("username")
@@ -38,15 +38,25 @@ if user_email:
     st.caption("🔒 Google OAuth Verified · Your data is protected")
     st.success(f"🎉 Welcome back, {username}!")
 
-    with st.spinner("📡 Loading your YouTube subscriptions..."):
-        creds = get_user_credentials(user_email)
-        df = fetch_subscriptions(creds, user_email)
+    # 🔁 Optional: refresh button
+    if st.button("🔄 Refresh Subscriptions"):
+        st.cache_data.clear()
 
+    with st.spinner("📡 Loading your YouTube subscriptions..."):
+        try:
+            creds = get_user_credentials(user_email)
+            df = fetch_subscriptions(creds, user_email)
+        except Exception as e:
+            st.error("❌ Failed to authenticate or retrieve subscriptions.")
+            st.exception(e)
+            st.stop()
+
+    # Validate data
     if df.empty or 'statistics' not in df.columns or 'snippet' not in df.columns:
         st.warning("⚠️ No subscriptions found or data could not be fetched.")
         st.stop()
 
-    # ✅ Safe formatting
+    # Format stats safely
     for col in ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.viewCount']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -55,6 +65,7 @@ if user_email:
 
     df = df[df['snippet'].notna() & df['statistics'].notna()]
 
+    # Dashboard metrics
     st.metric("Total Channels", len(df))
     st.metric("Total Subscribers", f"{int(df['statistics.subscriberCount'].sum()):,}")
     st.metric("Total Videos", f"{int(df['statistics.videoCount'].sum()):,}")
@@ -65,12 +76,11 @@ if user_email:
     for _, row in df.iterrows():
         if not isinstance(row.get("snippet"), dict):
             continue
-        # Assuming channel_card() is defined somewhere else in the app
         channel_card(row)
 
 else:
     # -------------------------------
-    # 🙋‍♀️ Not logged in? Prompt them
+    # 🧭 Welcome screen (not logged in)
     # -------------------------------
     st.title("📺 YouTufy – Your YouTube Subscriptions Dashboard")
     st.caption("🔒 Google OAuth Verified · Your data is protected")
