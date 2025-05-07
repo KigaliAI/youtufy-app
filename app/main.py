@@ -1,14 +1,31 @@
-import sys
 import os
+import sys
+import streamlit as st
+import pandas as pd
+from datetime import datetime
 
-# Dynamically adjust backend path
+# -------------------------------
+# ✅ Dynamically adjust backend path
+# -------------------------------
 backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
 sys.path.insert(0, backend_path)
 
-print(f"🔎 Debug: Backend path added: {backend_path}")  # ✅ Debugging
+# ✅ Debug: Show import-related context
+print("🗂️ Current working directory:", os.getcwd())
+print("📁 Backend path added to sys.path:", backend_path)
+print("📄 Files in backend path:", os.listdir(backend_path))
 
-from backend.auth import get_user_credentials
-from backend.youtube import fetch_subscriptions
+# -------------------------------
+# ✅ Import backend modules (after path is adjusted)
+# Use relative import based on path injection
+# Remove `backend.` prefix since we already inserted backend to sys.path
+# -------------------------------
+try:
+    from auth import get_user_credentials
+    from youtube import fetch_subscriptions
+except ModuleNotFoundError as e:
+    st.error("❌ Failed to import backend modules.")
+    st.stop()
 
 # -------------------------------
 # 👤 Check session (logged in?)
@@ -48,6 +65,7 @@ if user_email:
     for _, row in df.iterrows():
         if not isinstance(row.get("snippet"), dict):
             continue
+        # Assuming channel_card() is defined somewhere else in the app
         channel_card(row)
 
 else:
@@ -67,5 +85,3 @@ else:
         "<a href='https://kigaliai.github.io/YouTufy/terms.html' target='_blank'>Terms of Service</a></p>",
         unsafe_allow_html=True
     )
-
-
