@@ -1,8 +1,9 @@
-# app/pages/login.py
 import streamlit as st
 import sqlite3
 import hashlib
-from utils.tokens import generate_token
+import sys
+sys.path.append("./utils")  # Ensure Streamlit recognizes the utils module
+from tokens import generate_token
 from dotenv import load_dotenv
 import os
 
