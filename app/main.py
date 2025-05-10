@@ -10,19 +10,17 @@ from datetime import datetime
 backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
 sys.path.insert(0, backend_path)
 
-# -------------------------------
 # ✅ Import backend modules
-# -------------------------------
 try:
     from auth import get_user_credentials
     from youtube import fetch_subscriptions
-except ModuleNotFoundError as e:
+except ModuleNotFoundError:
     st.error("❌ Failed to import backend modules.")
     st.stop()
 
-# 🔧 Optional: try to import channel_card if it's defined in a utility
+# ✅ Import channel card
 try:
-    from utils.display import channel_card  # adjust path if needed
+    from utils.display import channel_card
 except:
     def channel_card(row):
         st.write(f"📺 **{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
@@ -33,14 +31,26 @@ except:
 user_email = st.session_state.get("user")
 username = st.session_state.get("username")
 
+st.set_page_config(page_title="YouTufy", layout="wide")
+
 if user_email:
     st.title("📺 YouTufy – Your YouTube Subscriptions Dashboard")
     st.caption("🔒 Google OAuth Verified · Your data is protected")
-    st.success(f"🎉 Welcome back, {username}!")
 
-    # 🔁 Optional: refresh button
+    # 🎉 Welcome message styled
+    st.markdown(
+        f"""
+        <div style="background-color:magenta; color:white; padding:12px 20px; border-radius:6px; font-weight:bold;">
+            🎉 Welcome back, {username}!
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # 🔁 Refresh button
     if st.button("🔄 Refresh Subscriptions"):
         st.cache_data.clear()
+        st.experimental_rerun()
 
     with st.spinner("📡 Loading your YouTube subscriptions..."):
         try:
@@ -51,12 +61,11 @@ if user_email:
             st.exception(e)
             st.stop()
 
-    # Validate data
     if df.empty or 'statistics' not in df.columns or 'snippet' not in df.columns:
         st.warning("⚠️ No subscriptions found or data could not be fetched.")
         st.stop()
 
-    # Format stats safely
+    # ✅ Safe numeric conversions
     for col in ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.viewCount']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -65,7 +74,7 @@ if user_email:
 
     df = df[df['snippet'].notna() & df['statistics'].notna()]
 
-    # Dashboard metrics
+    # 📊 Dashboard metrics
     st.metric("Total Channels", len(df))
     st.metric("Total Subscribers", f"{int(df['statistics.subscriberCount'].sum()):,}")
     st.metric("Total Videos", f"{int(df['statistics.videoCount'].sum()):,}")

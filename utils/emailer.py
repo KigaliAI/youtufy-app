@@ -11,11 +11,7 @@ SENDER_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 
 def send_registration_email(email, username, token):
-    print("📬 Preparing registration email...")
-
-    verification_link = f"https://kigaliai.github.io/YouTufy/verify.html?token={token}"
-    print(f"📧 Sending to: {email}")
-    print(f"🔗 Link: {verification_link}")
+    verification_link = f"https://www.youtufy.com/verify.html?token={token}"
 
     message = MIMEMultipart("alternative")
     message["Subject"] = f"✅ Welcome to YouTufy, {username}! Verify your account"
@@ -38,11 +34,11 @@ The YouTufy Team
     html = f"""
 <html>
   <body style="font-family: Arial, sans-serif; line-height: 1.6;">
-    <h2>👋 Welcome to <span style="color:#28a745;">YouTufy</span>, {username}!</h2>
+    <h2>👋 Welcome to <span style="color:#ff00ff;">YouTufy</span>, {username}!</h2>
     <p>You're almost done – please verify your email to activate your dashboard.</p>
     <p style="text-align: center; margin: 30px 0;">
       <a href="{verification_link}" target="_blank" style="
-          background-color: #28a745;
+          background-color: #ff00ff;
           color: white;
           padding: 14px 24px;
           border-radius: 6px;
@@ -54,11 +50,10 @@ The YouTufy Team
     <p>If the button doesn't work, copy and paste this URL in your browser:</p>
     <p><a href="{verification_link}">{verification_link}</a></p>
     <br>
-    <p style="font-size: 14px; color: #888;">– The YouTufy Team</p>
+    <p style="font-size: 14px; color: #555;">– The YouTufy Team</p>
   </body>
 </html>
 """
-
     message.attach(MIMEText(text, "plain"))
     message.attach(MIMEText(html, "html"))
 
@@ -72,8 +67,6 @@ The YouTufy Team
 
 
 def send_verification_email(to_email, auth_url):
-    print(f"📬 Sending OAuth verification email to: {to_email}")
-
     message = MIMEMultipart("alternative")
     message["Subject"] = "✅ Welcome to YouTufy – Verify Your Access"
     message["From"] = SENDER_EMAIL
@@ -87,7 +80,7 @@ You're one step away from unlocking your personal dashboard of YouTube subscript
 Click this link to authorize:
 {auth_url}
 
-Thanks,  
+Thanks,
 The YouTufy Team
 """
     html = f"""
@@ -101,7 +94,6 @@ The YouTufy Team
   </body>
 </html>
 """
-
     message.attach(MIMEText(text, "plain"))
     message.attach(MIMEText(html, "html"))
 
@@ -115,7 +107,7 @@ The YouTufy Team
 
 
 def send_password_reset_email(email, token):
-    reset_url = f"https://kigaliai.github.io/YouTufy/reset.html?token={token}"
+    reset_url = f"https://www.youtufy.com/reset.html?token={token}"
 
     message = MIMEMultipart("alternative")
     message["Subject"] = "🔑 Reset your YouTufy password"
@@ -145,7 +137,6 @@ If you didn't request this, you can ignore this message.
   </body>
 </html>
 """
-
     message.attach(MIMEText(text, "plain"))
     message.attach(MIMEText(html, "html"))
 
