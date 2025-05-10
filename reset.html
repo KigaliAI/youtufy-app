@@ -1,10 +1,10 @@
+<!-- reset.html (IMPROVED: AUTO-REDIRECTS TO STREAMLIT APP) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; URL='https://youtufy-one.streamlit.app/reset_password?token='+window.location.search.substring(1)">
+  <meta http-equiv="refresh" content="0; URL='https://youtufy-one.streamlit.app/reset_password'+window.location.search">
   <script>
-    // Optional fallback if redirect fails
     window.onload = function() {
       const token = new URLSearchParams(window.location.search).get("token");
       if (token) {

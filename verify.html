@@ -1,19 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Redirecting – YouTufy Email Verification</title>
-  <meta http-equiv="refresh" content="0; URL='https://youtufy-one.streamlit.app/verify_token?' + window.location.search.substring(1)">
+  <meta charset="UTF-8" />
+  <title>Redirecting to YouTufy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script>
     window.onload = function () {
       const token = new URLSearchParams(window.location.search).get("token");
       if (token) {
         window.location.href = `https://youtufy-one.streamlit.app/verify_token?token=${token}`;
+      } else {
+        document.getElementById("message").innerText = "❌ Missing verification token.";
       }
     };
   </script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #ff00ff;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+  </style>
 </head>
-<body style="font-family: sans-serif; text-align: center; padding: 50px;">
-  <p>🔐 Redirecting to your YouTufy email verification page...</p>
+<body>
+  <div>
+    <h2>🔁 Redirecting to YouTufy...</h2>
+    <p id="message">If you're not redirected, please wait a few seconds.</p>
+  </div>
 </body>
 </html>
