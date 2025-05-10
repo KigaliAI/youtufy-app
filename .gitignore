@@ -1,10 +1,12 @@
 # Secrets should be ignored
-.env
-config/client_secret.json
-.streamlit/secrets.toml
+.env                      
+config/client_secret.json 
+.streamlit/secrets.toml   
 
 # Local DB & cache
-data/*.db
-users/
-__pycache__/
-*.pyc
+data/*.db                 
+users/                    
+__pycache__/              
+*.pyc                     
+data/**/*.json
+*.log
