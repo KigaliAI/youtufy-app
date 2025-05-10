@@ -40,7 +40,7 @@ if user_email:
     # 🎉 Welcome message styled
     st.markdown(
         f"""
-        <div style="background-color:magenta; color:white; padding:12px 20px; border-radius:6px; font-weight:bold;">
+        <div style="background-color:#ff00ff; color:white; padding:12px 20px; border-radius:6px; font-weight:bold;">
             🎉 Welcome back, {username}!
         </div>
         """,
@@ -93,9 +93,13 @@ else:
     # -------------------------------
     st.title("📺 YouTufy – Your YouTube Subscriptions Dashboard")
     st.caption("🔒 Google OAuth Verified · Your data is protected")
-    st.markdown("Welcome to **YouTufy**!")
+    st.markdown("<h2 style='color:#ff00ff;'>Welcome to YouTufy!</h2>", unsafe_allow_html=True)
     st.write("Organize and manage all your YouTube subscriptions in one place.")
-    st.info("🔐 Sign in or register to get started.")
+    st.markdown("""
+        <div style='background-color:#ff00ff; color:white; padding:10px; border-radius:5px;'>
+            🔐 Sign in or register to get started.
+        </div>
+    """, unsafe_allow_html=True)
     st.markdown("➡️ Use the sidebar to **[Register](/register)** or **[Login](/login)**.")
     st.markdown("---")
     st.markdown(
