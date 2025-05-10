@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>YouTufy – Reset Password</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; URL='https://youtufy-one.streamlit.app/reset_password?token='+window.location.search.substring(1)">
+  <script>
+    // Optional fallback if redirect fails
+    window.onload = function() {
+      const token = new URLSearchParams(window.location.search).get("token");
+      if (token) {
+        window.location.href = `https://youtufy-one.streamlit.app/reset_password?token=${token}`;
+      }
+    };
+  </script>
+  <title>Redirecting...</title>
 </head>
-<body style="font-family: sans-serif; text-align: center; margin-top: 80px;">
-  <h1 style="background-color: #8F00FF; color: white; padding: 10px; border-radius: 5px;">🔑 Reset Your Password</h1>
-  <p>Thanks for using YouTufy. Please return to the app to complete your reset.</p>
-  <p style="color: #FF00FF; font-size: 0.9em;">This placeholder confirms your request was received.</p>
+<body>
+  <p>Redirecting to YouTufy password reset page...</p>
 </body>
 </html>
