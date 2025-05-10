@@ -5,11 +5,12 @@ import sys
 import sqlite3
 import streamlit as st
 
-# 🔧 Add project root to path so 'utils' module resolves properly
+# ✅ Add backend/utils directory to the path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-sys.path.insert(0, project_root)
+utils_path = os.path.join(project_root, "utils")
+sys.path.insert(0, utils_path)
 
-from utils.tokens import validate_token  # ✅ Works now after path fix
+from tokens import validate_token  # This works now since utils is in path
 
 # Page config
 st.set_page_config(page_title="Verify Account", layout="centered")
