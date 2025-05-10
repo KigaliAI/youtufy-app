@@ -2,45 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>YouTufy – Email Verified</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background-color: #ff00ff;
-      padding: 40px;
-      text-align: center;
-    }
-    .container {
-      background: white;
-      padding: 40px;
-      max-width: 500px;
-      margin: auto;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    h1 {
-      color: #28a745;
-    }
-    p {
-      font-size: 16px;
-    }
-    a {
-      display: inline-block;
-      margin-top: 20px;
-      text-decoration: none;
-      background: #ff00ff;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 4px;
-    }
-  </style>
+  <title>Redirecting – YouTufy Email Verification</title>
+  <meta http-equiv="refresh" content="0; URL='https://youtufy-one.streamlit.app/verify_token?' + window.location.search.substring(1)">
+  <script>
+    window.onload = function () {
+      const token = new URLSearchParams(window.location.search).get("token");
+      if (token) {
+        window.location.href = `https://youtufy-one.streamlit.app/verify_token?token=${token}`;
+      }
+    };
+  </script>
 </head>
-<body>
-  <div class="container">
-    <h1>✅ You're Verified!</h1>
-    <p>Thank you for verifying your email with YouTufy.</p>
-    <p>Your account has been activated. You can now use all features.</p>
-    <a href="https://youtufy-one.streamlit.app">Return to YouTufy</a>
-  </div>
+<body style="font-family: sans-serif; text-align: center; padding: 50px;">
+  <p>🔐 Redirecting to your YouTufy email verification page...</p>
 </body>
 </html>
