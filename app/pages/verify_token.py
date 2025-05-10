@@ -1,20 +1,16 @@
 # app/pages/verify_token.py
 
 import os
-import sys
 import sqlite3
 import streamlit as st
+from utils.tokens import validate_token
 
-# ✅ Add backend/utils directory to the path
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-utils_path = os.path.join(project_root, "utils")
-sys.path.insert(0, utils_path)
-
-from tokens import validate_token  # This works now since utils is in path
-
-# Page config
+# Set page config
 st.set_page_config(page_title="Verify Account", layout="centered")
-st.title("🔐 Verify Your Email")
+st.title("🔐 Email Verification")
+
+# Load DB path
+DB_PATH = st.secrets.get("USER_DB_PATH", "data/YouTufy_users.db")
 
 # -----------------------------------
 # 📩 Get token from URL query params
@@ -26,7 +22,7 @@ if not token:
     st.stop()
 
 # -----------------------------------
-# 🔐 Validate token content
+# 🔐 Validate token and extract email
 # -----------------------------------
 email = validate_token(token)
 
@@ -35,10 +31,8 @@ if not email:
     st.stop()
 
 # -----------------------------------
-# 📦 Update user verification status
+# ✅ Update user verification status
 # -----------------------------------
-DB_PATH = st.secrets.get("USER_DB_PATH", "data/YouTufy_users.db")
-
 try:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
