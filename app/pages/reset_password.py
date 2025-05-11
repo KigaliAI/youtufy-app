@@ -2,10 +2,12 @@
 
 import os
 import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+import sys
 import sqlite3
 import streamlit as st
 import re
-from utils.tokens import generate_token, verify_token
+from utils.tokens import generate_token, verify_token, validate_token
 import hashlib
 
 # Set up project root
@@ -43,7 +45,7 @@ if query_token:
             try:
                 conn = sqlite3.connect(DB_PATH)
                 cur = conn.cursor()
-                cur.execute("SELECT email FROM users")  # Search for email matching token
+                cur.execute("SELECT email FROM users")
                 users = cur.fetchall()
                 updated = False
                 for (email,) in users:
