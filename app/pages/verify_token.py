@@ -1,40 +1,48 @@
 # app/pages/verify_token.py
 
 import os
+import sys
 import sqlite3
 import streamlit as st
-from utils.tokens import validate_token
+from utils.tokens import generate_token, verify_token
 
-# ✅ Configure the page
-st.set_page_config(page_title="Verify Account", layout="centered")
+# Add root path for imports
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, project_root)
+
+st.set_page_config(page_title="Verify Email", layout="centered")
 st.title("🔐 Email Verification")
 
-# ✅ Token from URL
+DB_PATH = st.secrets.get("USER_DB_PATH", "data/YouTufy_users.db")
+
+# -----------------------------------
+# 📩 Get token from URL
+# -----------------------------------
 token = st.query_params.get("token")
+
 if not token:
     st.warning("⚠️ Missing verification token in the URL.")
     st.stop()
 
-# ✅ Validate the token
-email = validate_token(token)
-if not email:
-    st.error("❌ Invalid or expired token. Please request a new verification link.")
-    st.stop()
-
-# ✅ Load DB path securely
-DB_PATH = st.secrets.get("USER_DB_PATH", "data/YouTufy_users.db")
-
-# ✅ Update user verification
 try:
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("UPDATE users SET verified = 1, token = NULL WHERE email = ?", (email,))
-        conn.commit()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT email FROM users")
+    verified = False
+    for (email,) in cur.fetchall():
+        stored_token = generate_token(email)
+        if verify_token(token, stored_token):
+            cur.execute("UPDATE users SET verified = 1 WHERE email = ?", (email,))
+            conn.commit()
+            st.success(f"✅ Email verified: **{email}**")
+            st.info("You can now log in.")
+            st.page_link("/login", label="Login", icon="➡️")
+            verified = True
+            break
+    conn.close()
 
-    st.success(f"✅ Email verified for: **{email}**")
-    st.info("You may now return to the app and log in.")
-    st.page_link("/login", label="🔐 Go to Login", icon="➡️")
-
+    if not verified:
+        st.error("❌ Invalid or expired token.")
 except Exception as e:
-    st.error("❌ Failed to update your verification status.")
+    st.error("❌ Database error.")
     st.exception(e)
