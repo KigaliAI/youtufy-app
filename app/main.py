@@ -7,8 +7,7 @@ from datetime import datetime
 # -------------------------------
 # ✅ Adjust backend import path
 # -------------------------------
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
-sys.path.insert(0, backend_path)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
 
 # ✅ Import backend modules
 try:
@@ -18,10 +17,11 @@ except ModuleNotFoundError:
     st.error("❌ Failed to import backend modules.")
     st.stop()
 
-# ✅ Import channel card
+# ✅ Import utilities
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "utils")))
 try:
-    from utils.display import channel_card
-except:
+    from display import channel_card
+except ModuleNotFoundError:
     def channel_card(row):
         st.write(f"📺 **{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
 
@@ -47,15 +47,23 @@ if user_email:
         unsafe_allow_html=True
     )
 
-    # 🔁 Refresh button
+    # 🔁 Refresh button (Fixed `st.rerun()`)
     if st.button("🔄 Refresh Subscriptions"):
         st.cache_data.clear()
-        st.experimental_rerun()
+        st.rerun()  # Updated function
 
+    # 📡 Load subscriptions with optimized error handling
     with st.spinner("📡 Loading your YouTube subscriptions..."):
         try:
             creds = get_user_credentials(user_email)
+
+            # ✅ Debug: Measure API call time
+            import time
+            start_time = time.time()
             df = fetch_subscriptions(creds, user_email)
+            end_time = time.time()
+            st.write(f"⏳ Subscriptions loaded in {end_time - start_time:.2f} seconds")  # Show execution time
+
         except Exception as e:
             st.error("❌ Failed to authenticate or retrieve subscriptions.")
             st.exception(e)
@@ -82,10 +90,10 @@ if user_email:
 
     st.markdown("---")
 
+    # 🖼️ Display channels using `channel_card`
     for _, row in df.iterrows():
-        if not isinstance(row.get("snippet"), dict):
-            continue
-        channel_card(row)
+        if isinstance(row.get("snippet"), dict):
+            channel_card(row)
 
 else:
     # -------------------------------
