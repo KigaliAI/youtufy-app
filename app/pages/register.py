@@ -1,9 +1,12 @@
 # app/pages/register.py
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import streamlit as st
 import sqlite3
 import hashlib
 import re
-from utils.tokens import generate_token
+from utils.tokens import generate_token, validate_token
 from utils.emailer import send_registration_email
 
 # Load DB path from Streamlit secrets, fallback to local for dev

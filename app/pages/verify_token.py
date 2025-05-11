@@ -2,9 +2,11 @@
 
 import os
 import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+import sys
 import sqlite3
 import streamlit as st
-from utils.tokens import generate_token, verify_token
+from utils.tokens import generate_token, verify_token, validate_token
 
 # Add root path for imports
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
