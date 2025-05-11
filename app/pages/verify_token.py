@@ -3,7 +3,6 @@
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-import sys
 import sqlite3
 import streamlit as st
 from utils.tokens import generate_token, verify_token, validate_token
@@ -38,7 +37,11 @@ try:
             conn.commit()
             st.success(f"✅ Email verified: **{email}**")
             st.info("You can now log in.")
-            st.page_link("/login", label="Login", icon="➡️")
+            
+            # ✅ Fixed Login Navigation
+            if st.button("Go to Login"):
+                st.switch_page("pages.login")  # Use Streamlit navigation
+
             verified = True
             break
     conn.close()
