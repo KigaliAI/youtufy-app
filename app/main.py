@@ -3,6 +3,7 @@ import sys
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import time
 
 # -------------------------------
 # ✅ Adjust backend import path
@@ -11,8 +12,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 # ✅ Import backend modules
 try:
-    from auth import get_user_credentials
-    from youtube import fetch_subscriptions
+    from backend.auth import get_user_credentials
+    from backend.youtube import fetch_subscriptions
 except ModuleNotFoundError:
     st.error("❌ Failed to import backend modules.")
     st.stop()
@@ -20,10 +21,17 @@ except ModuleNotFoundError:
 # ✅ Import utilities
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "utils")))
 try:
-    from display import channel_card
+    from utils.display import channel_card
 except ModuleNotFoundError:
     def channel_card(row):
         st.write(f"📺 **{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
+
+# -------------------------------
+# 🖼️ Display YouTufy Logo & Title
+# -------------------------------
+st.image("assets/logo.jpeg", width=60)  # ✅ Ensure logo is correctly sized
+st.title("YouTufy – YouTube Subscriptions App")
+st.caption("🔒 Google OAuth Verified · Your data is protected")
 
 # -------------------------------
 # 👤 User session check
@@ -34,10 +42,6 @@ username = st.session_state.get("username")
 st.set_page_config(page_title="YouTufy", layout="wide")
 
 if user_email:
-    st.title("📺 YouTufy – Your YouTube Subscriptions Dashboard")
-    st.caption("🔒 Google OAuth Verified · Your data is protected")
-
-    # 🎉 Welcome message styled
     st.markdown(
         f"""
         <div style="background-color:#ff00ff; color:white; padding:12px 20px; border-radius:6px; font-weight:bold;">
@@ -47,10 +51,10 @@ if user_email:
         unsafe_allow_html=True
     )
 
-    # 🔁 Refresh button (Fixed `st.rerun()`)
+    # 🔁 Refresh button
     if st.button("🔄 Refresh Subscriptions"):
         st.cache_data.clear()
-        st.rerun()  # Updated function
+        st.rerun()
 
     # 📡 Load subscriptions with optimized error handling
     with st.spinner("📡 Loading your YouTube subscriptions..."):
@@ -58,7 +62,6 @@ if user_email:
             creds = get_user_credentials(user_email)
 
             # ✅ Debug: Measure API call time
-            import time
             start_time = time.time()
             df = fetch_subscriptions(creds, user_email)
             end_time = time.time()
@@ -99,20 +102,39 @@ else:
     # -------------------------------
     # 🧭 Welcome screen (not logged in)
     # -------------------------------
-    st.title("📺 YouTufy – Your YouTube Subscriptions Dashboard")
-    st.caption("🔒 Google OAuth Verified · Your data is protected")
     st.markdown("<h2 style='color:#ff00ff;'>Welcome to YouTufy!</h2>", unsafe_allow_html=True)
+    st.image("assets/logo.jpeg", width=80)  # ✅ Larger logo for the welcome screen
     st.write("Organize and manage all your YouTube subscriptions in one place.")
+
     st.markdown("""
         <div style='background-color:#ff00ff; color:white; padding:10px; border-radius:5px;'>
-            🔐 Sign in or register to get started.
+            🔐 Sign in with Google to get started.
         </div>
     """, unsafe_allow_html=True)
-    st.markdown("➡️ Use the sidebar to **[Register](/register)** or **[Login](/login)**.")
+
+    # ✅ Google OAuth Sign-In Button
+    if st.button("🔐 Sign in with Google"):
+        auth_url = generate_auth_url_for_user(user_email)
+        st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
+
     st.markdown("---")
+
+    # 🔎 Google OAuth Consent Screen Information
+    st.markdown("""
+        - ✅ **Google account selector must be shown**
+        - ✅ **Requested scope: `youtube.readonly` must appear**
+        - ✅ **User must click 'Allow'**
+    """)
+
+    st.markdown("---")
+
     st.markdown(
-        "<p style='text-align: center; font-size: 13px;'>🔐 Secure & Private | "
-        "<a href='https://kigaliai.github.io/YouTufy/privacy.html' target='_blank'>Privacy Policy</a> | "
-        "<a href='https://kigaliai.github.io/YouTufy/terms.html' target='_blank'>Terms of Service</a></p>",
+        """
+        <p style='text-align: center; font-size: 13px;'>🔐 Secure & Private | 
+        <a href='https://www.youtufy.com/privacy' target='_blank'>Privacy Policy</a> | 
+        <a href='https://www.youtufy.com/terms' target='_blank'>Terms of Service</a> | 
+        <a href='https://www.youtufy.com/cookie' target='_blank'>Cookie Policy</a>
+        </p>
+        """,
         unsafe_allow_html=True
     )
