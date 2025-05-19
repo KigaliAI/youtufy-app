@@ -1,11 +1,16 @@
 import os
 import json
+import asyncio
+import aiohttp
 import pandas as pd
 import streamlit as st
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def fetch_subscriptions(creds, user_email):
+async def fetch_subscriptions(creds, user_email):
+    """Fetch YouTube subscriptions asynchronously using batch requests."""
+    
     # ✅ Validate credentials before proceeding
     if not creds or not creds.valid:
         raise ValueError("⚠️ Invalid credentials. Ensure OAuth setup is complete.")
@@ -15,22 +20,24 @@ def fetch_subscriptions(creds, user_email):
     # 🔁 Step 1: Fetch all subscriptions
     subscriptions = []
     next_page_token = None
-    while True:
-        try:
-            request = youtube.subscriptions().list(
-                part="snippet,contentDetails",
-                mine=True,
-                maxResults=50,
-                pageToken=next_page_token
-            )
-            response = request.execute()
-            subscriptions += response.get("items", [])
-            next_page_token = response.get("nextPageToken")
-            if not next_page_token:
-                break
-        except Exception as e:
-            print(f"❌ Error fetching subscriptions: {e}")
-            return pd.DataFrame()
+
+    async with aiohttp.ClientSession() as session:
+        while True:
+            try:
+                request = youtube.subscriptions().list(
+                    part="snippet,contentDetails",
+                    mine=True,
+                    maxResults=50,
+                    pageToken=next_page_token
+                )
+                response = await asyncio.to_thread(request.execute)
+                subscriptions += response.get("items", [])
+                next_page_token = response.get("nextPageToken")
+                if not next_page_token:
+                    break
+            except HttpError as e:
+                print(f"❌ API Error fetching subscriptions: {e}")
+                return pd.DataFrame()
 
     # 🧠 Step 2: Extract channel IDs
     channel_ids = [
@@ -39,52 +46,60 @@ def fetch_subscriptions(creds, user_email):
         if item.get('snippet', {}).get('resourceId', {}).get('channelId')
     ]
 
-    # 📦 Step 3: Fetch channel metadata + latest upload
-    channel_data = []
-    for i in range(0, len(channel_ids), 50):  # Max 50 per call
+    # 📦 Step 3: Fetch channel metadata + latest upload asynchronously
+    async def fetch_channel_metadata(channel_batch):
         try:
-            req = youtube.channels().list(
+            request = youtube.channels().list(
                 part="snippet,contentDetails,statistics,brandingSettings,topicDetails,status",
-                id=",".join(channel_ids[i:i + 50])
+                id=",".join(channel_batch)
             )
-            res = req.execute()
-            items = res.get("items", [])
+            response = await asyncio.to_thread(request.execute)
+            return response.get("items", [])
+        except HttpError as e:
+            print(f"❌ API Error fetching channel metadata: {e}")
+            return []
 
-            for item in items:
-                snippet = item.get('snippet', {})
-                stats = item.get('statistics', {})
-                content_details = item.get('contentDetails', {})
+    async def fetch_latest_upload(uploads_playlist):
+        """Fetch latest video from a playlist."""
+        try:
+            request = youtube.playlistItems().list(
+                part="contentDetails",
+                playlistId=uploads_playlist,
+                maxResults=1
+            )
+            response = await asyncio.to_thread(request.execute)
+            latest_item = response.get("items", [])[0]
+            return latest_item["contentDetails"].get("videoPublishedAt", None)
+        except HttpError as e:
+            print(f"⚠️ Error fetching latest video: {e}")
+            return None
 
-                # 🛠️ Ensure valid stats with proper fallbacks
-                stats['subscriberCount'] = int(stats.get('subscriberCount', 0))
-                stats['videoCount'] = int(stats.get('videoCount', 0))
-                stats['viewCount'] = int(stats.get('viewCount', 0))
+    # Process channels in batches asynchronously
+    tasks = [fetch_channel_metadata(channel_ids[i:i+50]) for i in range(0, len(channel_ids), 50)]
+    channel_metadata_batches = await asyncio.gather(*tasks)
 
-                snippet['title'] = snippet.get('title', '❓ Unknown Title')
+    channel_data = []
+    for items in channel_metadata_batches:
+        for item in items:
+            snippet = item.get('snippet', {})
+            stats = item.get('statistics', {})
+            content_details = item.get('contentDetails', {})
 
-                # 🔹 Fetch latest video date with error handling
-                latest_date = None
-                try:
-                    uploads_playlist = content_details.get("relatedPlaylists", {}).get("uploads")
-                    if uploads_playlist:
-                        upload_req = youtube.playlistItems().list(
-                            part="contentDetails",
-                            playlistId=uploads_playlist,
-                            maxResults=1
-                        )
-                        upload_res = upload_req.execute()
-                        latest_item = upload_res.get("items", [])[0]
-                        latest_date = latest_item["contentDetails"].get("videoPublishedAt")
-                except Exception as e:
-                    print(f"⚠️ Error fetching latest video: {e}")
-                    latest_date = None
+            # 🛠️ Ensure valid stats with proper fallbacks
+            stats['subscriberCount'] = int(stats.get('subscriberCount', 0))
+            stats['videoCount'] = int(stats.get('videoCount', 0))
+            stats['viewCount'] = int(stats.get('viewCount', 0))
 
-                item["latestVideoDate"] = latest_date
-                item["snippet"] = snippet
-                item["statistics"] = stats
-                channel_data.append(item)
-        except Exception as e:
-            print(f"❌ Error fetching channel metadata: {e}")
+            snippet['title'] = snippet.get('title', '❓ Unknown Title')
+
+            # 🔹 Fetch latest video date asynchronously
+            uploads_playlist = content_details.get("relatedPlaylists", {}).get("uploads")
+            latest_date = await fetch_latest_upload(uploads_playlist) if uploads_playlist else None
+
+            item["latestVideoDate"] = latest_date
+            item["snippet"] = snippet
+            item["statistics"] = stats
+            channel_data.append(item)
 
     # 📎 Step 4: Optional backup (disable if not needed)
     try:
@@ -97,3 +112,8 @@ def fetch_subscriptions(creds, user_email):
 
     # ✅ Step 5: Return DataFrame
     return pd.DataFrame(channel_data)
+
+# Run the async function synchronously if needed
+def fetch_subscriptions_sync(creds, user_email):
+    return asyncio.run(fetch_subscriptions(creds, user_email))
+
