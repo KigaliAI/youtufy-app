@@ -97,12 +97,8 @@ st.markdown("""
 
 # 🔐 Sign-in Button
 if st.button("🔐 Sign in with Google"):
-    user_email = st.session_state.get("user") 
-    if user_email:
-        auth_url = generate_auth_url_for_user(user_email)
-        st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
-    else:
-        st.error("❌ No user session found. Please refresh the page.")
+    auth_url = generate_auth_url_for_user()
+    st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
 
 st.markdown("---")
 
