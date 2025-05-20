@@ -6,6 +6,11 @@ from datetime import datetime
 import time
 
 # -------------------------------
+# ✅ Set page config FIRST
+# -------------------------------
+st.set_page_config(page_title="YouTufy", layout="wide")
+
+# -------------------------------
 # ✅ Adjust backend import path
 # -------------------------------
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
@@ -24,12 +29,18 @@ try:
     from utils.display import channel_card
 except ModuleNotFoundError:
     def channel_card(row):
-        st.write(f"📺 **{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
+        logo_path = "assets/logo.jpeg"
+
+        if os.path.exists(logo_path):
+            st.image(logo_path, width=20)  # ✅ Small YouTufy logo instead of 📺
+            st.write(f"**{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
+        else:
+            st.write(f"**{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
 
 # -------------------------------
 # 🖼️ Display YouTufy Logo & Title
 # -------------------------------
-st.image("assets/logo.jpeg", width=60)  # ✅ Updated to correct logo path
+st.image("assets/logo.jpeg", width=60)  # ✅ Correct path after file move
 st.title("YouTufy – YouTube Subscriptions App")
 st.caption("🔒 Google OAuth Verified · Your data is protected")
 
@@ -38,8 +49,6 @@ st.caption("🔒 Google OAuth Verified · Your data is protected")
 # -------------------------------
 user_email = st.session_state.get("user")
 username = st.session_state.get("username")
-
-st.set_page_config(page_title="YouTufy", layout="wide")
 
 if user_email:
     st.markdown(
