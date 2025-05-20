@@ -29,7 +29,7 @@ except ModuleNotFoundError:
 # -------------------------------
 # 🖼️ Display YouTufy Logo & Title
 # -------------------------------
-st.image("assets/logo.jpeg", width=60)  # ✅ Updated path after moving the file
+st.image("assets/logo.jpeg", width=60)  # ✅ Updated to correct logo path
 st.title("YouTufy – YouTube Subscriptions App")
 st.caption("🔒 Google OAuth Verified · Your data is protected")
 
