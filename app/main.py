@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 # ✅ Import backend modules
 try:
-    from backend.auth import get_user_credentials
+    from backend.auth import get_user_credentials, generate_auth_url_for_user  # ✅ Fixed missing function import
     from backend.youtube import fetch_subscriptions
 except ModuleNotFoundError:
     st.error("❌ Failed to import backend modules.")
@@ -82,10 +82,14 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 🔐 Sign-in Button
+# 🔐 Sign-in Button (Fixed `generate_auth_url_for_user`)
 if st.button("🔐 Sign in with Google"):
-    auth_url = generate_auth_url_for_user(st.session_state.get("user"))
-    st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
+    user_email = st.session_state.get("user")  # ✅ Ensure user email exists
+    if user_email:
+        auth_url = generate_auth_url_for_user(user_email)
+        st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
+    else:
+        st.error("❌ No user session found. Please try refreshing the page.")
 
 st.markdown("---")
 
