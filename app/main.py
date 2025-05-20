@@ -95,10 +95,14 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 🔐 Sign-in Button
+# 🔐 Sign-in Button (Improved Flow)
 if st.button("🔐 Sign in with Google"):
-    auth_url = generate_auth_url_for_user()
-    st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
+    auth_url = generate_auth_url_for_user()  # ✅ No need for user_email argument
+    st.write("✅ Click the link below to authenticate:")
+    st.markdown(f"[🔗 Sign in with Google]({auth_url})", unsafe_allow_html=True)
+
+    # ✅ Debugging Support: Print auth URL in console
+    logging.info(f"🔗 Generated Auth URL: {auth_url}")
 
 st.markdown("---")
 
