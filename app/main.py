@@ -29,7 +29,7 @@ except ModuleNotFoundError:
 # -------------------------------
 # 🖼️ Display YouTufy Logo & Title
 # -------------------------------
-st.image("youtufy/site/assets/logo.jpeg", width=60)  # ✅ Correct path for the logo
+st.image("assets/logo.jpeg", width=60)  # ✅ Updated path after moving the file
 st.title("YouTufy – YouTube Subscriptions App")
 st.caption("🔒 Google OAuth Verified · Your data is protected")
 
@@ -103,7 +103,7 @@ else:
     # 🧭 Welcome screen (not logged in)
     # -------------------------------
     st.markdown("<h2 style='color:#ff00ff;'>Welcome to YouTufy!</h2>", unsafe_allow_html=True)
-    st.image("youtufy/site/assets/logo.jpeg", width=80)  # ✅ Larger logo for the welcome screen
+    st.image("assets/logo.jpeg", width=80)  # ✅ Larger logo for the welcome screen
     st.write("Organize and manage all your YouTube subscriptions in one place.")
 
     st.markdown("""
