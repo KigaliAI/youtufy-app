@@ -1,9 +1,19 @@
+# Core framework
 streamlit
-pandas
-aiohttp
-asyncio 
+
+# Google OAuth & YouTube Data API
 google-auth
 google-auth-oauthlib
 google-api-python-client
+
+# Email + token generation
 python-dotenv
 email-validator
+itsdangerous
+
+# Email sending (standard lib, but smtplib relies on these)
+aiohttp
+asyncio
+
+# Data handling
+pandas
