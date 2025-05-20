@@ -7,20 +7,12 @@ import time
 from googleapiclient.discovery import build
 
 # -------------------------------
-# ✅ Set page config
+# ✅ Set page config FIRST
 # -------------------------------
 st.set_page_config(page_title="YouTufy", layout="wide")
 
 # -------------------------------
-# ✅ Session state defaults
-# -------------------------------
-if "user" not in st.session_state:
-    st.session_state["user"] = None
-if "username" not in st.session_state:
-    st.session_state["username"] = "Guest"
-
-# -------------------------------
-# ✅ Adjust import paths
+# ✅ Adjust backend import path
 # -------------------------------
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
 
@@ -30,14 +22,12 @@ except ModuleNotFoundError:
     st.error("❌ Failed to import backend modules.")
     st.stop()
 
+# ✅ Import utilities
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "utils")))
 try:
     from utils.display import channel_card
 except ModuleNotFoundError:
     def channel_card(row):
-        logo_path = "assets/logo.jpeg"
-        if os.path.exists(logo_path):
-            st.image(logo_path, width=20)
         st.write(f"**{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
 
 # -------------------------------
@@ -60,14 +50,11 @@ def fetch_subscriptions(creds, user_email=None):
         response = request.execute()
         items = response.get("items", [])
         subscriptions.extend(items)
-
         for item in items:
             cid = item["snippet"]["resourceId"]["channelId"]
             channel_ids.append(cid)
-
         request = youtube.subscriptions().list_next(request, response)
 
-    # 🔄 Enrich with channel statistics in batches
     enriched_data = []
     for i in range(0, len(channel_ids), 50):
         batch_ids = channel_ids[i:i+50]
@@ -81,22 +68,26 @@ def fetch_subscriptions(creds, user_email=None):
         for sub in subscriptions[i:i+50]:
             cid = sub["snippet"]["resourceId"]["channelId"]
             sub["statistics"] = stats_map.get(cid, {})
-
         enriched_data.extend(subscriptions[i:i+50])
 
     return pd.DataFrame(enriched_data)
 
 # -------------------------------
-# 🖼️ Logo and Title
+# ✅ EMAIL VERIFICATION PAGE GUARD
+# Only show page if token exists (when it's renamed to verify_token.py)
+# -------------------------------
+if "verify_token" in __file__:
+    if not st.query_params.get("token"):
+        st.stop()  # Don't allow manual visits to /verify_token
+
+# -------------------------------
+# 🖼️ Logo & Title
 # -------------------------------
 col1, col2 = st.columns([1, 3])
 with col1:
     logo_path = "assets/logo.jpeg"
     if os.path.exists(logo_path):
         st.image(logo_path, width=60)
-    else:
-        st.warning("⚠️ Logo not found.")
-
 with col2:
     st.markdown("<h1 style='margin-top: 10px;'>YouTufy – YouTube Subscriptions App</h1>", unsafe_allow_html=True)
     st.caption("🔒 Google OAuth Verified · Your data is protected")
@@ -105,26 +96,24 @@ st.markdown("<h2 style='color:#ff00ff;'>Welcome to YouTufy!</h2>", unsafe_allow_
 
 st.markdown("""
     <div style='background-color:#f0f0f0; padding:15px; border-radius:6px; font-size:16px;'>
-        👉**Youtufy securely accesses your YouTube subscriptions**.<br>
-        👉Youtufy requests **youtube.readonly** permission to display your subscribed channels.<br>
-        👉Click **Sign in with Google** to grant access and manage your subscriptions easily.
+        🎥 **Youtufy securely accesses your YouTube subscriptions**.<br>
+        🛡️ We request **youtube.readonly** permission to display your subscribed channels.<br>
+        ✅ Click **Sign in with Google** to grant access and manage your subscriptions easily.
     </div>
 """, unsafe_allow_html=True)
 
-# 🔐 Sign-in Button
+# 🔐 SIGN-IN WITH GOOGLE – FIXED
 if st.button("🔐 Sign in with Google"):
-    user_email = st.session_state.get("user")
-    if user_email:
-        auth_url = generate_auth_url_for_user(user_email)
-        st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
-    else:
-        st.error("❌ No user session found. Please try refreshing the page.")
+    auth_url = generate_auth_url_for_user("temp@placeholder.com")
+    st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# 👤 Check session (logged in?)
+# -------------------------------
+# 👤 USER SESSION & DASHBOARD
+# -------------------------------
 user_email = st.session_state.get("user")
-username = st.session_state.get("username")
+username = st.session_state.get("username", "Guest")
 
 if user_email:
     st.markdown(
@@ -156,7 +145,6 @@ if user_email:
         st.warning("⚠️ No subscriptions found or data could not be fetched.")
         st.stop()
 
-    # ✅ Safe numeric conversion
     for col in ['subscriberCount', 'videoCount', 'viewCount']:
         df[f'statistics.{col}'] = pd.to_numeric(df['statistics'].apply(lambda s: s.get(col) if isinstance(s, dict) else 0), errors='coerce')
 
@@ -173,15 +161,11 @@ if user_email:
         if isinstance(row.get("snippet"), dict):
             channel_card(row)
 
-# 🔒 Footer Links
-PRIVACY_URL = "https://www.youtufy.com/privacy"
-TERMS_URL = "https://www.youtufy.com/terms"
-COOKIE_URL = "https://www.youtufy.com/cookie"
-
-st.markdown(f"""
+# Footer
+st.markdown("""
     <p style='text-align: center; font-size: 13px;'>🔐 Secure & Private |
-    <a href='{PRIVACY_URL}' target='_blank'>Privacy Policy</a> |
-    <a href='{TERMS_URL}' target='_blank'>Terms of Service</a> |
-    <a href='{COOKIE_URL}' target='_blank'>Cookie Policy</a>
+    <a href='https://www.youtufy.com/privacy' target='_blank'>Privacy Policy</a> |
+    <a href='https://www.youtufy.com/terms' target='_blank'>Terms of Service</a> |
+    <a href='https://www.youtufy.com/cookie' target='_blank'>Cookie Policy</a>
     </p>
 """, unsafe_allow_html=True)
