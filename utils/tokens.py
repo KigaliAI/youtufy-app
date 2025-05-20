@@ -1,48 +1,39 @@
-import hashlib
-import secrets
-import time
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Use the salt from .env or fallback
-SALT = os.getenv("TOKEN_SALT", "YouTufyDefaultSalt")
+SECRET_KEY = os.getenv("SECRET_KEY", "SuperSecretYouTufyKey")
+TOKEN_SALT = os.getenv("TOKEN_SALT", "YouTufyTokenSalt")
+
+# Create serializer
+serializer = URLSafeTimedSerializer(secret_key=SECRET_KEY)
 
 
 def generate_token(email: str) -> str:
     """
-    Generate a token based on email + salt.
+    Generate a signed, time-safe token based on the user's email.
     """
-    raw = f"{email}|{SALT}"
-    return hashlib.sha256(raw.encode()).hexdigest()
+    return serializer.dumps(email, salt=TOKEN_SALT)
 
 
-def validate_token(token: str) -> str or None:
+def verify_token(token: str, max_age_seconds=3600) -> str or None:
     """
-    Validate token by regenerating from all known emails in DB.
-    Return matching email if valid.
+    Verify the token is valid and not expired.
+    Returns the original email if valid, or None.
     """
-    import sqlite3
-    DB_PATH = os.getenv("USER_DB_PATH", "data/YouTufy_users.db")
-
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cur = conn.cursor()
-        cur.execute("SELECT email FROM users")
-        for (email,) in cur.fetchall():
-            expected_token = generate_token(email)
-            if expected_token == token:
-                return email
-        conn.close()
-    except Exception as e:
-        print(f"❌ Token validation DB error: {e}")
-
-    return None
+        email = serializer.loads(token, salt=TOKEN_SALT, max_age=max_age_seconds)
+        return email
+    except SignatureExpired:
+        print("❌ Token expired.")
+        return None
+    except BadSignature:
+        print("❌ Invalid token signature.")
+        return None
 
 
-def verify_token(provided_token: str, stored_token: str) -> bool:
-    """
-    Compare raw token strings. Only used if storing tokens.
-    """
+# Optional: Validate against stored token (if needed)
+def match_token(provided_token: str, stored_token: str) -> bool:
     return provided_token == stored_token

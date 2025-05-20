@@ -1,77 +1,76 @@
-# app/pages/reset_password.py
-
 import os
 import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-import sys
-import sqlite3
-import streamlit as st
 import re
-from utils.tokens import generate_token, verify_token, validate_token
+import sqlite3
 import hashlib
+from datetime import datetime, timedelta
+import streamlit as st
 
-# Set up project root
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-sys.path.insert(0, project_root)
+# Add project root for imports
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from utils.tokens import generate_token, verify_token
+from utils.emailer import send_password_reset_email
 
-# DB path
 DB_PATH = st.secrets.get("USER_DB_PATH", "data/YouTufy_users.db")
-
 st.set_page_config(page_title="Reset Password", layout="centered")
 
-# -----------------------------------
-# 🔍 Check if token is present
-# -----------------------------------
-query_token = st.query_params.get("token")
-
-# Password hashing
+# 🔐 Password hasher
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+# 🌐 Get reset token from URL
+query_token = st.query_params.get("token")
+
+# ---------------------------
+# 🔁 Password Reset Flow
+# ---------------------------
 if query_token:
-    st.title("🔐 Set New Password")
+    st.title("🔐 Set a New Password")
 
-    with st.form("reset_password_form"):
-        new_pass = st.text_input("New Password", type="password")
-        confirm_pass = st.text_input("Confirm Password", type="password")
-        submitted = st.form_submit_button("Update Password")
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT email, reset_expiry FROM users WHERE reset_token = ?", (query_token,))
+        row = cur.fetchone()
 
-    if submitted:
-        if not new_pass or not confirm_pass:
-            st.error("❗ All fields are required.")
-        elif new_pass != confirm_pass:
-            st.error("❗ Passwords do not match.")
+        if not row:
+            st.error("❌ Invalid or expired token.")
+            conn.close()
         else:
-            try:
-                conn = sqlite3.connect(DB_PATH)
-                cur = conn.cursor()
-                cur.execute("SELECT email FROM users")
-                users = cur.fetchall()
-                updated = False
-                for (email,) in users:
-                    stored_token = generate_token(email)
-                    if verify_token(query_token, stored_token):
-                        hashed = hash_password(new_pass)
-                        cur.execute("UPDATE users SET password = ? WHERE email = ?", (hashed, email))
-                        conn.commit()
-                        st.success("✅ Password updated! You can now log in.")
-                        st.page_link("/login", label="Go to Login", icon="➡️")
-                        updated = True
-                        break
+            email, expiry_str = row
+            if datetime.strptime(expiry_str, "%Y-%m-%d %H:%M:%S") < datetime.now():
+                st.error("⏰ This token has expired.")
                 conn.close()
+            else:
+                with st.form("reset_password_form"):
+                    new_pass = st.text_input("New Password", type="password")
+                    confirm_pass = st.text_input("Confirm Password", type="password")
+                    submitted = st.form_submit_button("Update Password")
 
-                if not updated:
-                    st.error("❌ Invalid or expired token.")
+                if submitted:
+                    if not new_pass or not confirm_pass:
+                        st.error("❗ All fields are required.")
+                    elif new_pass != confirm_pass:
+                        st.error("❗ Passwords do not match.")
+                    else:
+                        hashed = hash_password(new_pass)
+                        cur.execute("UPDATE users SET password = ?, reset_token = NULL, reset_expiry = NULL WHERE email = ?", (hashed, email))
+                        conn.commit()
+                        conn.close()
+                        st.success("✅ Password updated! You can now log in.")
+                        st.page_link("pages/login.py", label="Go to Login", icon="➡️")
+    except Exception as e:
+        st.error(f"❌ Error: {e}")
 
-            except Exception as e:
-                st.error(f"❌ Error: {e}")
-
+# ---------------------------
+# 📨 Request Reset Link Flow
+# ---------------------------
 else:
     st.title("🔑 Reset Your YouTufy Password")
-    st.markdown("We'll send a reset link to your registered email.")
+    st.markdown("We'll send a reset link to your registered email address.")
 
     with st.form("request_reset_form"):
-        email = st.text_input("Email")
+        email = st.text_input("📧 Email")
         submitted = st.form_submit_button("Send Reset Link")
 
     if submitted:
@@ -81,14 +80,24 @@ else:
             try:
                 conn = sqlite3.connect(DB_PATH)
                 cur = conn.cursor()
-                cur.execute("SELECT * FROM users WHERE email=?", (email,))
+                cur.execute("SELECT * FROM users WHERE email = ?", (email,))
                 if cur.fetchone():
                     token = generate_token(email)
-                    from utils.emailer import send_password_reset_email
+                    expiry = datetime.now() + timedelta(hours=1)
+
+                    # Store token and expiry
+                    cur.execute("UPDATE users SET reset_token = ?, reset_expiry = ? WHERE email = ?", (
+                        token,
+                        expiry.strftime("%Y-%m-%d %H:%M:%S"),
+                        email
+                    ))
+                    conn.commit()
+                    conn.close()
+
+                    # Send reset link
                     send_password_reset_email(email, token)
                     st.success("📬 Reset link sent! Check your email.")
                 else:
                     st.warning("⚠️ No account found with that email.")
-                conn.close()
             except Exception as e:
                 st.error(f"❌ Database error: {e}")
