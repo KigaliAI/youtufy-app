@@ -4,6 +4,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import time
+from googleapiclient.discovery import build
 
 # -------------------------------
 # ✅ Set page config FIRST
@@ -38,6 +39,27 @@ except ModuleNotFoundError:
             st.write(f"**{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
 
 # -------------------------------
+# 📡 Optimized Fetch Subscriptions
+# -------------------------------
+@st.cache_data(ttl=600)  # ✅ Cache API data for 10 minutes
+def fetch_subscriptions_cached(creds):
+    youtube = build("youtube", "v3", credentials=creds)
+
+    subscriptions = []
+    request = youtube.subscriptions().list(
+        part="snippet,contentDetails",
+        mine=True,
+        maxResults=50  # ✅ Load only 50 channels at a time for better speed
+    )
+
+    while request:
+        response = request.execute()
+        subscriptions.extend(response.get("items", []))
+        request = youtube.subscriptions().list_next(request, response)
+
+    return pd.DataFrame(subscriptions)
+
+# -------------------------------
 # 🖼️ Logo & Title (Improved UI)
 # -------------------------------
 col1, col2 = st.columns([1, 3])  # ✅ Organize layout
@@ -62,7 +84,7 @@ st.markdown("""
 
 # 🔐 Sign-in Button
 if st.button("🔐 Sign in with Google"):
-    auth_url = generate_auth_url_for_user(user_email)
+    auth_url = generate_auth_url_for_user(st.session_state.get("user"))
     st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
 
 st.markdown("---")
@@ -93,7 +115,7 @@ if user_email:
 
             # ✅ Debug: Measure API call time
             start_time = time.time()
-            df = fetch_subscriptions(creds, user_email)
+            df = fetch_subscriptions_cached(creds)
             end_time = time.time()
             st.write(f"⏳ Subscriptions loaded in {end_time - start_time:.2f} seconds")  # Show execution time
 
@@ -102,18 +124,14 @@ if user_email:
             st.exception(e)
             st.stop()
 
-    if df.empty or 'statistics' not in df.columns or 'snippet' not in df.columns:
+    if df.empty or 'snippet' not in df.columns:
         st.warning("⚠️ No subscriptions found or data could not be fetched.")
         st.stop()
 
     # ✅ Safe numeric conversions
-    for col in ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.viewCount']:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-        else:
-            df[col] = 0
-
-    df = df[df['snippet'].notna() & df['statistics'].notna()]
+    numeric_columns = ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.viewCount']
+    for col in numeric_columns:
+        df[col] = pd.to_numeric(df.get(col, 0), errors="coerce")
 
     # 📊 Dashboard metrics
     st.metric("Total Channels", len(df))
