@@ -105,9 +105,9 @@ st.markdown("<h2 style='color:#ff00ff;'>Welcome to YouTufy!</h2>", unsafe_allow_
 
 st.markdown("""
     <div style='background-color:#f0f0f0; padding:15px; border-radius:6px; font-size:16px;'>
-        🎥 **Youtufy securely accesses your YouTube subscriptions**.<br>
-        🛡️ We request **youtube.readonly** permission to display your subscribed channels.<br>
-        ✅ Click **Sign in with Google** to grant access and manage your subscriptions easily.
+        👉**Youtufy securely accesses your YouTube subscriptions**.<br>
+        👉Youtufy requests **youtube.readonly** permission to display your subscribed channels.<br>
+        👉Click **Sign in with Google** to grant access and manage your subscriptions easily.
     </div>
 """, unsafe_allow_html=True)
 
