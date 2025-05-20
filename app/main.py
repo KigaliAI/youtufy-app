@@ -17,6 +17,7 @@ st.set_page_config(page_title="YouTufy", layout="wide")
 # -------------------------------
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
 
+# ✅ Import backend modules
 try:
     from backend.auth import get_user_credentials, generate_auth_url_for_user
 except ModuleNotFoundError:
@@ -32,10 +33,10 @@ except ModuleNotFoundError:
         st.write(f"**{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
 
 # -------------------------------
-# 📡 Fetch & Enrich YouTube Subscriptions
+# 📡 Optimized Fetch Subscriptions
 # -------------------------------
 @st.cache_data(ttl=600)
-def fetch_subscriptions(creds, user_email=None):
+def fetch_subscriptions(creds):
     youtube = build("youtube", "v3", credentials=creds)
     subscriptions = []
 
@@ -71,31 +72,41 @@ def fetch_subscriptions(creds, user_email=None):
             sub["statistics"] = stats_map.get(cid, {})
         enriched_data.extend(subscriptions[i:i+50])
 
-    df = pd.DataFrame(enriched_data)
-
-    # ✅ Avoid NaN issues in numeric conversions
-    for col in ['subscriberCount', 'videoCount', 'viewCount']:
-        df[f'statistics.{col}'] = pd.to_numeric(
-            df['statistics'].apply(lambda s: s.get(col) if isinstance(s, dict) else 0),
-            errors='coerce'
-        ).fillna(0)
-
-    return df
+    return pd.DataFrame(enriched_data)
 
 # -------------------------------
-# 🖼️ UI Setup
+# 🖼️ Logo & Title (Improved UI)
 # -------------------------------
-st.markdown("<h1>YouTufy – YouTube Subscriptions App</h1>", unsafe_allow_html=True)
+col1, col2 = st.columns([1, 3])
+with col1:
+    st.image("assets/logo.jpeg", width=60)
+
+with col2:
+    st.markdown("<h1 style='margin-top: 10px;'>YouTufy – YouTube Subscriptions App</h1>", unsafe_allow_html=True)
+    st.caption("🔒 Google OAuth Verified · Your data is protected")
+
+st.markdown("<h2 style='color:#ff00ff;'>Welcome to YouTufy!</h2>", unsafe_allow_html=True)
+
+st.markdown("""
+    <div style='background-color:#f0f0f0; padding:15px; border-radius:6px; font-size:16px;'>
+        🎥 **Youtufy securely accesses your YouTube subscriptions**.<br>
+        🛡️ We request **youtube.readonly** permission to display your subscribed channels.<br>
+        ✅ Click **Sign in with Google** to grant access and manage your subscriptions easily.
+    </div>
+""", unsafe_allow_html=True)
 
 # 🔐 Sign-in Button
 if st.button("🔐 Sign in with Google"):
-    user_email = st.session_state.get("user", "temp@placeholder.com")  # Dynamically use logged-in user
-    auth_url = generate_auth_url_for_user(user_email)
-    st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
+    user_email = st.session_state.get("user") 
+    if user_email:
+        auth_url = generate_auth_url_for_user(user_email)
+        st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
+    else:
+        st.error("❌ No user session found. Please refresh the page.")
 
-# -------------------------------
-# 👤 Dashboard
-# -------------------------------
+st.markdown("---")
+
+# 👤 User session check
 user_email = st.session_state.get("user")
 username = st.session_state.get("username", "Guest")
 
@@ -109,10 +120,10 @@ if user_email:
     with st.spinner("📡 Loading your YouTube subscriptions..."):
         try:
             creds = get_user_credentials(user_email)
-            start = time.time()
-            df = fetch_subscriptions(creds, user_email)
-            end = time.time()
-            st.write(f"⏳ Subscriptions loaded in {end - start:.2f} seconds")
+            start_time = time.time()
+            df = fetch_subscriptions(creds)
+            end_time = time.time()
+            st.write(f"⏳ Subscriptions loaded in {end_time - start_time:.2f} seconds")
         except Exception as e:
             st.error("❌ Failed to authenticate or retrieve subscriptions.")
             st.exception(e)
@@ -127,10 +138,15 @@ if user_email:
     st.metric("Total Videos", f"{int(df['statistics.videoCount'].sum()):,}")
 
     st.markdown("---")
+
     for _, row in df.iterrows():
         if isinstance(row.get("snippet"), dict):
             channel_card(row)
 
-# Footer
-st.markdown("🔐 Secure & Private | [Privacy Policy](https://www.youtufy.com/privacy)")
-
+st.markdown("""
+    <p style='text-align: center; font-size: 13px;'>🔐 Secure & Private | 
+    <a href='https://www.youtufy.com/privacy' target='_blank'>Privacy Policy</a> | 
+    <a href='https://www.youtufy.com/terms' target='_blank'>Terms of Service</a> | 
+    <a href='https://www.youtufy.com/cookie' target='_blank'>Cookie Policy</a>
+    </p>
+""", unsafe_allow_html=True)

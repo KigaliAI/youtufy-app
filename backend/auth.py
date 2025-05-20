@@ -49,18 +49,10 @@ def get_user_credentials(user_email):
             logging.warning(f"⚠️ Failed to load token file: {e}")
 
     if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            try:
-                creds.refresh(Request())
-            except Exception:
-                st.error("❌ Token refresh failed. Please sign in again.")
-                creds = None
-
-        if not creds:
-            secret_path = _get_cached_secret_path()
-            flow = InstalledAppFlow.from_client_secrets_file(secret_path, SCOPES)
-            auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
-            st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
-            return None
+        secret_path = _get_cached_secret_path()
+        flow = InstalledAppFlow.from_client_secrets_file(secret_path, SCOPES)
+        auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
+        st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
+        return None
 
     return creds
