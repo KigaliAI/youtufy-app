@@ -38,15 +38,36 @@ except ModuleNotFoundError:
             st.write(f"**{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
 
 # -------------------------------
-# 🖼️ Display YouTufy Logo & Title
+# 🖼️ Logo & Title (Improved UI)
 # -------------------------------
-st.image("assets/logo.jpeg", width=60)  # ✅ Correct path after file move
-st.title("YouTufy – YouTube Subscriptions App")
-st.caption("🔒 Google OAuth Verified · Your data is protected")
+col1, col2 = st.columns([1, 3])  # ✅ Organize layout
+with col1:
+    st.image("assets/logo.jpeg", width=60)  # ✅ Keep only one logo, left-aligned
 
-# -------------------------------
+with col2:
+    st.markdown("<h1 style='margin-top: 10px;'>YouTufy – YouTube Subscriptions App</h1>", unsafe_allow_html=True)
+    st.caption("🔒 Google OAuth Verified · Your data is protected")
+
+# 🏷️ Welcome Message
+st.markdown("<h2 style='color:#ff00ff;'>Welcome to YouTufy!</h2>", unsafe_allow_html=True)
+
+# 🛠️ Improved OAuth Explanation
+st.markdown("""
+    <div style='background-color:#f0f0f0; padding:15px; border-radius:6px; font-size:16px;'>
+        🎥 **Youtufy securely accesses your YouTube subscriptions**.<br>
+        🛡️ We request **youtube.readonly** permission to display your subscribed channels.<br>
+        ✅ Click **Sign in with Google** to grant access and manage your subscriptions easily.
+    </div>
+""", unsafe_allow_html=True)
+
+# 🔐 Sign-in Button
+if st.button("🔐 Sign in with Google"):
+    auth_url = generate_auth_url_for_user(user_email)
+    st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
+
+st.markdown("---")
+
 # 👤 User session check
-# -------------------------------
 user_email = st.session_state.get("user")
 username = st.session_state.get("username")
 
@@ -107,44 +128,11 @@ if user_email:
         if isinstance(row.get("snippet"), dict):
             channel_card(row)
 
-else:
-    # -------------------------------
-    # 🧭 Welcome screen (not logged in)
-    # -------------------------------
-    st.markdown("<h2 style='color:#ff00ff;'>Welcome to YouTufy!</h2>", unsafe_allow_html=True)
-    st.image("assets/logo.jpeg", width=80)  # ✅ Larger logo for the welcome screen
-    st.write("Organize and manage all your YouTube subscriptions in one place.")
-
-    st.markdown("""
-        <div style='background-color:#ff00ff; color:white; padding:10px; border-radius:5px;'>
-            🔐 Sign in with Google to get started.
-        </div>
-    """, unsafe_allow_html=True)
-
-    # ✅ Google OAuth Sign-In Button
-    if st.button("🔐 Sign in with Google"):
-        auth_url = generate_auth_url_for_user(user_email)
-        st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    # 🔎 Google OAuth Consent Screen Information
-    st.markdown("""
-        - ✅ **Google account selector must be shown**
-        - ✅ **Requested scope: `youtube.readonly` must appear**
-        - ✅ **User must click 'Allow'**
-    """)
-
-    st.markdown("---")
-
-    # ✅ Privacy, Terms, & Cookie Policy Links
-    st.markdown(
-        """
-        <p style='text-align: center; font-size: 13px;'>🔐 Secure & Private | 
-        <a href='https://www.youtufy.com/privacy' target='_blank'>Privacy Policy</a> | 
-        <a href='https://www.youtufy.com/terms' target='_blank'>Terms of Service</a> | 
-        <a href='https://www.youtufy.com/cookie' target='_blank'>Cookie Policy</a>
-        </p>
-        """,
-        unsafe_allow_html=True
-    )
+# ✅ Privacy, Terms, & Cookie Policy Links
+st.markdown("""
+    <p style='text-align: center; font-size: 13px;'>🔐 Secure & Private | 
+    <a href='https://www.youtufy.com/privacy' target='_blank'>Privacy Policy</a> | 
+    <a href='https://www.youtufy.com/terms' target='_blank'>Terms of Service</a> | 
+    <a href='https://www.youtufy.com/cookie' target='_blank'>Cookie Policy</a>
+    </p>
+""", unsafe_allow_html=True)
