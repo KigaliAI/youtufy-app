@@ -20,7 +20,10 @@ if "GOOGLE_CLIENT_SECRET_JSON" in st.secrets:
 else:
     CLIENT_SECRET_PATH = "config/client_secret.json"
 
-REDIRECT_URI = st.secrets.get("OAUTH_REDIRECT_URI", "http://localhost:8501/")
+REDIRECT_URI = st.secrets.get("OAUTH_REDIRECT_URI")
+if not REDIRECT_URI:
+    # fallback for local dev
+    REDIRECT_URI = "http://localhost:8501/"
 
 # ✅ Get code from URL
 code = st.query_params.get("code")
