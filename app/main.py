@@ -1,108 +1,62 @@
-import os
-import sys
 import streamlit as st
+from backend.auth import get_user_credentials
 import pandas as pd
 from datetime import datetime
 import time
 from googleapiclient.discovery import build
 
-# -------------------------------
-# ✅ Page config
-# -------------------------------
 st.set_page_config(page_title="YouTufy", layout="wide")
 
 # -------------------------------
-# ✅ Backend imports
-# -------------------------------
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
-try:
-    from backend.auth import get_user_credentials
-except ModuleNotFoundError:
-    st.error("❌ Failed to load backend modules.")
-    st.stop()
-
-# -------------------------------
-# ✅ Check user login status
+# ✅ Detect login
 # -------------------------------
 user_email = st.session_state.get("user")
 username = st.session_state.get("username", "Guest")
 
-# -------------------------------
-# 🖼️ Welcome Screen (unauthenticated users)
-# -------------------------------
 if not user_email:
-    # UI only — no subscriptions, no session
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        st.image("assets/logo.jpeg", width=60)
-
-    with col2:
-        st.markdown("<h1 style='margin-top: 10px;'>YouTufy – YouTube Subscriptions App</h1>", unsafe_allow_html=True)
-        st.caption("🔒 Google OAuth Verified · Your data is protected")
-
-    st.markdown("<h2 style='color:#ff00ff;'>Welcome to YouTufy!</h2>", unsafe_allow_html=True)
+    # Show Welcome + Login Prompt
+    st.image("assets/logo.jpeg", width=60)
+    st.markdown("<h1>YouTufy – YouTube Subscriptions App</h1>", unsafe_allow_html=True)
 
     st.markdown("""
-        <div style='background-color:#f0f0f0; padding:15px; border-radius:6px; font-size:16px;'>
-            👉 <strong>Youtufy securely accesses your YouTube subscriptions</strong>.<br>
-            👉 We request <code>youtube.readonly</code> permission only.<br>
-            👉 Click below to sign in with Google and get started.
-        </div>
+    👉 **Youtufy securely accesses your YouTube subscriptions**.<br>
+    👉 We request `youtube.readonly` permission.<br>
+    👉 Click below to sign in with Google.
     """, unsafe_allow_html=True)
 
-    # Redirect to login.py
     if st.button("🔐 Sign in with Google"):
         st.switch_page("pages/login.py")
 
-    st.stop()  # Stop here if not logged in
+    st.stop()  # ⛔ Stop execution if not logged in
 
 # -------------------------------
-# ✅ Authenticated User: Dashboard
+# ✅ Logged-in user – show dashboard
 # -------------------------------
-col1, col2 = st.columns([1, 3])
-with col1:
-    st.image("assets/logo.jpeg", width=60)
-with col2:
-    st.markdown("<h1 style='margin-top: 10px;'>YouTufy – YouTube Subscriptions App</h1>", unsafe_allow_html=True)
-    st.caption("🔒 Google OAuth Verified")
+st.success(f"✅ Welcome back, {username}!")
 
-st.success(f"🎉 Welcome back, {username}!")
-
-# -------------------------------
-# 📡 Fetch Subscriptions
-# -------------------------------
-@st.cache_data(ttl=600)
-def fetch_subscriptions(creds):
-    youtube = build("youtube", "v3", credentials=creds)
-    subscriptions = []
-
-    request = youtube.subscriptions().list(
-        part="snippet,contentDetails",
-        mine=True,
-        maxResults=50
-    )
-
-    while request:
-        response = request.execute()
-        subscriptions.extend(response.get("items", []))
-        request = youtube.subscriptions().list_next(request, response)
-
-    return pd.DataFrame(subscriptions)
-
-# -------------------------------
-# 🔁 Refresh + Load
-# -------------------------------
+# 🔁 Optional refresh
 if st.button("🔄 Refresh Subscriptions"):
     st.cache_data.clear()
     st.rerun()
 
+# ✅ Fetch credentials
 creds = get_user_credentials(user_email)
 
-with st.spinner("📡 Loading your subscriptions..."):
+# ✅ Fetch Subscriptions
+@st.cache_data(ttl=600)
+def fetch_subscriptions(creds):
+    youtube = build("youtube", "v3", credentials=creds)
+    subs = []
+    req = youtube.subscriptions().list(part="snippet", mine=True, maxResults=50)
+    while req:
+        res = req.execute()
+        subs.extend(res.get("items", []))
+        req = youtube.subscriptions().list_next(req, res)
+    return pd.DataFrame(subs)
+
+with st.spinner("📡 Fetching subscriptions..."):
     try:
-        start = time.time()
         df = fetch_subscriptions(creds)
-        st.write(f"⏳ Loaded in {time.time() - start:.2f} seconds")
     except Exception as e:
         st.error("❌ Failed to load subscriptions.")
         st.exception(e)
@@ -110,21 +64,8 @@ with st.spinner("📡 Loading your subscriptions..."):
 
 if df.empty:
     st.warning("⚠️ No subscriptions found.")
-    st.stop()
-
-st.metric("Total Channels", len(df))
-
-# -------------------------------
-# 🖼️ Show channels
-# -------------------------------
-for _, row in df.iterrows():
-    title = row.get("snippet", {}).get("title", "Unknown")
-    st.markdown(f"- **{title}**")
-
-st.markdown("""
-    <p style='text-align: center; font-size: 13px;'>🔐 Secure & Private |
-    <a href='https://www.youtufy.com/privacy' target='_blank'>Privacy Policy</a> |
-    <a href='https://www.youtufy.com/terms' target='_blank'>Terms of Service</a> |
-    <a href='https://www.youtufy.com/cookie' target='_blank'>Cookie Policy</a>
-    </p>
-""", unsafe_allow_html=True)
+else:
+    st.metric("Total Channels", len(df))
+    st.caption(f"📅 Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    for _, row in df.iterrows():
+        st.markdown(f"- **{row['snippet']['title']}**")
