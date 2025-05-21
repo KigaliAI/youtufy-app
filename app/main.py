@@ -6,6 +6,7 @@ from datetime import datetime
 import time
 from googleapiclient.discovery import build
 import logging
+from backend.auth import get_user_credentials  # ✅ Ensure authentication support
 
 # -------------------------------
 # ✅ Set page config FIRST
@@ -13,24 +14,18 @@ import logging
 st.set_page_config(page_title="YouTufy", layout="wide")
 
 # -------------------------------
-# ✅ Adjust backend import path
+# ✅ User session check (Redirects unauthenticated users)
 # -------------------------------
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
+user_email = st.session_state.get("user")
 
-# ✅ Import backend modules
-try:
-    from backend.auth import get_user_credentials, generate_auth_url_for_user
-except ModuleNotFoundError:
-    st.error("❌ Failed to import backend modules.")
-    st.stop()
+if not user_email:
+    st.error("🔒 You need to sign in first!")
+    st.switch_page("pages/login.py")  # ✅ Redirects users to login page
 
-# ✅ Import utilities
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "utils")))
-try:
-    from utils.display import channel_card
-except ModuleNotFoundError:
-    def channel_card(row):
-        st.write(f"**{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
+# ✅ Continue if authenticated
+else:
+    creds = get_user_credentials(user_email)
+    st.write(f"🎉 Welcome, {user_email}!")
 
 # -------------------------------
 # 📡 Optimized Fetch Subscriptions
@@ -75,7 +70,7 @@ def fetch_subscriptions(creds):
     return pd.DataFrame(enriched_data)
 
 # -------------------------------
-# 🖼️ Logo & Title (Improved UI)
+# 🖼️ Logo & Title
 # -------------------------------
 col1, col2 = st.columns([1, 3])
 with col1:
@@ -95,58 +90,48 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 🔐 Sign-in Button (Improved Flow)
+# 🔐 Sign-in Button (Redirects to login.py)
 if st.button("🔐 Sign in with Google"):
-    auth_url = generate_auth_url_for_user()  # ✅ No need for user_email argument
-    st.write("✅ Click the link below to authenticate:")
-    st.markdown(f"[🔗 Sign in with Google]({auth_url})", unsafe_allow_html=True)
-
-    # ✅ Debugging Support: Print auth URL in console
-    logging.info(f"🔗 Generated Auth URL: {auth_url}")
+    st.switch_page("pages/login.py")  # ✅ Redirect users to login page
 
 st.markdown("---")
 
-# 👤 User session check
-user_email = st.session_state.get("user")
-username = st.session_state.get("username", "Guest")
+# ✅ Refresh Button
+if st.button("🔄 Refresh Subscriptions"):
+    st.cache_data.clear()
+    st.rerun()
 
-if user_email:
-    st.markdown(f"🎉 Welcome back, {username}!")
-
-    if st.button("🔄 Refresh Subscriptions"):
-        st.cache_data.clear()
-        st.rerun()
-
-    with st.spinner("📡 Loading your YouTube subscriptions..."):
-        try:
-            creds = get_user_credentials(user_email)
-            start_time = time.time()
-            df = fetch_subscriptions(creds)
-            end_time = time.time()
-            st.write(f"⏳ Subscriptions loaded in {end_time - start_time:.2f} seconds")
-        except Exception as e:
-            st.error("❌ Failed to authenticate or retrieve subscriptions.")
-            st.exception(e)
-            st.stop()
-
-    if df.empty:
-        st.warning("⚠️ No subscriptions found.")
+# 📡 Subscription Loading
+with st.spinner("📡 Loading your YouTube subscriptions..."):
+    try:
+        start_time = time.time()
+        df = fetch_subscriptions(creds)
+        end_time = time.time()
+        st.write(f"⏳ Subscriptions loaded in {end_time - start_time:.2f} seconds")
+    except Exception as e:
+        st.error("❌ Failed to authenticate or retrieve subscriptions.")
+        st.exception(e)
         st.stop()
 
-    st.metric("Total Channels", len(df))
-    st.metric("Total Subscribers", f"{int(df['statistics.subscriberCount'].sum()):,}")
-    st.metric("Total Videos", f"{int(df['statistics.videoCount'].sum()):,}")
+if df.empty:
+    st.warning("⚠️ No subscriptions found.")
+    st.stop()
 
-    st.markdown("---")
+st.metric("Total Channels", len(df))
+st.metric("Total Subscribers", f"{int(df['statistics.subscriberCount'].sum()):,}")
+st.metric("Total Videos", f"{int(df['statistics.videoCount'].sum()):,}")
 
-    for _, row in df.iterrows():
-        if isinstance(row.get("snippet"), dict):
-            channel_card(row)
+st.markdown("---")
 
+for _, row in df.iterrows():
+    if isinstance(row.get("snippet"), dict):
+        st.write(f"**{row.get('snippet', {}).get('title', 'Unknown Channel')}**")
+
+# ✅ Privacy, Terms & Cookie Policy Links
 st.markdown("""
-    <p style='text-align: center; font-size: 13px;'>🔐 Secure & Private | 
-    <a href='https://www.youtufy.com/privacy' target='_blank'>Privacy Policy</a> | 
-    <a href='https://www.youtufy.com/terms' target='_blank'>Terms of Service</a> | 
+    <p style='text-align: center; font-size: 13px;'>🔐 Secure & Private |
+    <a href='https://www.youtufy.com/privacy' target='_blank'>Privacy Policy</a> |
+    <a href='https://www.youtufy.com/terms' target='_blank'>Terms of Service</a> |
     <a href='https://www.youtufy.com/cookie' target='_blank'>Cookie Policy</a>
     </p>
 """, unsafe_allow_html=True)
