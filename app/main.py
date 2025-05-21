@@ -14,27 +14,23 @@ user_email = st.session_state.get("user")
 username = st.session_state.get("username", "Guest")
 
 if not user_email:
-    # Show Welcome + Login Prompt
-    st.image("assets/logo.jpeg", width=60)
-    st.markdown("<h1>YouTufy – YouTube Subscriptions App</h1>", unsafe_allow_html=True)
+    st.warning("🔐 Please sign in to access your subscriptions.")
 
     st.markdown("""
-    👉 **Youtufy securely accesses your YouTube subscriptions**.<br>
-    👉 We request `youtube.readonly` permission.<br>
-    👉 Click below to sign in with Google.
+    👉 <strong>Youtufy securely accesses your YouTube subscriptions</strong>.<br>
+    🛡️ We request <code>youtube.readonly</code> permission.<br>
+    ✅ Choose one of the login methods below:
     """, unsafe_allow_html=True)
 
-    if st.button("🔐 Sign in with Google"):
-        st.switch_page("pages/login.py")
-
-    st.stop()  # ⛔ Stop execution if not logged in
+    st.page_link("pages/login.py", label="Classic Login (Email & Password)", icon="✉️")
+    st.page_link("pages/google_login.py", label="Sign in with Google", icon="🔐")
+    st.stop()
 
 # -------------------------------
 # ✅ Logged-in user – show dashboard
 # -------------------------------
 st.success(f"✅ Welcome back, {username}!")
 
-# 🔁 Optional refresh
 if st.button("🔄 Refresh Subscriptions"):
     st.cache_data.clear()
     st.rerun()

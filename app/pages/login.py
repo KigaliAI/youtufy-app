@@ -1,62 +1,52 @@
-import os
-import tempfile
 import streamlit as st
-from google_auth_oauthlib.flow import Flow
+import sqlite3
+import hashlib
+import sys
+sys.path.append("./utils")  # Ensure Streamlit recognizes the utils module
+from tokens import generate_token
+from dotenv import load_dotenv
+import os
 
-SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']
-st.set_page_config(page_title="Google Login", layout="centered")
-st.title("🔐 Sign in to YouTufy with Google")
+st.set_page_config(page_title="Login", layout="centered")
+st.title("🔐 Login to YouTufy")
 
-# ✅ Always use your deployed domain
-REDIRECT_URI = "https://youtufy-one.streamlit.app/"
+# Load environment vars
+load_dotenv()
+DB_PATH = os.getenv("USER_DB", "data/YouTufy_users.db")
 
-# ✅ Load client secret
-if "GOOGLE_CLIENT_SECRET_JSON" in st.secrets:
-    json_data = st.secrets["GOOGLE_CLIENT_SECRET_JSON"]
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w")
-    temp_file.write(json_data)
-    temp_file.close()
-    CLIENT_SECRET_PATH = temp_file.name
-else:
-    st.error("❌ No Google client secret found.")
-    st.stop()
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
-code = st.query_params.get("code")
+def authenticate_user(email, password):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT username, password, verified FROM users WHERE email=?", (email,))
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        db_username, db_password, verified = row
+        if hash_password(password) == db_password:
+            return db_username, verified
+    return None, False
 
-if code:
-    try:
-        flow = Flow.from_client_secrets_file(
-            CLIENT_SECRET_PATH,
-            scopes=SCOPES,
-            redirect_uri=REDIRECT_URI
-        )
-        flow.fetch_token(code=code)
-        creds = flow.credentials
-        user_email = creds.id_token.get("email", None)
+with st.form("login_form"):
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+    login_button = st.form_submit_button("Login")
 
-        if not user_email:
-            st.error("❌ Could not extract email from token.")
-            st.stop()
+if login_button:
+    username, verified = authenticate_user(email, password)
+    if username:
+        if not verified:
+            st.error("❌ Your account is not yet verified. Check your email.")
+        else:
+            st.session_state.user = email
+            st.session_state.username = username
+            st.success(f"✅ Welcome back, {username}!")
+            st.switch_page("main.py")
+    else:
+        st.error("❌ Invalid email or password.")
 
-        st.session_state["user"] = user_email
-        st.session_state["username"] = user_email.split("@")[0]
-        st.success(f"✅ Logged in as {user_email}")
-        st.switch_page("main.py")
-
-    except Exception as e:
-        st.error("❌ Failed to complete Google authentication.")
-        st.exception(e)
-else:
-    flow = Flow.from_client_secrets_file(
-        CLIENT_SECRET_PATH,
-        scopes=SCOPES,
-        redirect_uri=REDIRECT_URI
-    )
-    auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
-
-    st.markdown("Click below to sign in with your Google account:")
-    st.markdown(f"""
-        <p style="text-align:center;">
-            <a href="{auth_url}" style="padding: 12px 24px; background: #8F00FF; color: white; border-radius: 6px; text-decoration: none;">🔐 Sign in with Google</a>
-        </p>
-    """, unsafe_allow_html=True)
+st.markdown("---")
+if st.button("🔑 Forgot Password?"):
+    st.switch_page("pages/reset_password.py")
