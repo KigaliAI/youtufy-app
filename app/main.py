@@ -36,22 +36,25 @@ if st.button("🔄 Refresh Subscriptions"):
     st.cache_data.clear()
     st.rerun()
 
-# ✅ Fetch credentials
+# ✅ Fetch credentials safely
 creds = get_user_credentials(user_email)
+
+if not creds:
+    st.error("❌ Failed to authenticate. Please sign in again.")
+    st.stop()
 
 # ✅ Fetch Subscriptions
 @st.cache_data(ttl=600)
-def fetch_subscriptions(creds, user_email=None):
+def fetch_subscriptions(creds):
     youtube = build("youtube", "v3", credentials=creds)
     subscriptions = []
+    channel_ids = []
 
     request = youtube.subscriptions().list(
         part="snippet,contentDetails",
         mine=True,
         maxResults=50
     )
-
-    channel_ids = []
 
     while request:
         response = request.execute()
@@ -84,6 +87,7 @@ def fetch_subscriptions(creds, user_email=None):
     logging.info(f"✅ Fetched {len(enriched_data)} subscriptions with stats.")
     return pd.DataFrame(enriched_data)
 
+# ✅ Load subscriptions
 with st.spinner("📡 Fetching subscriptions..."):
     try:
         df = fetch_subscriptions(creds)
@@ -92,6 +96,7 @@ with st.spinner("📡 Fetching subscriptions..."):
         st.exception(e)
         st.stop()
 
+# ✅ Display subscription metrics
 if df.empty:
     st.warning("⚠️ No subscriptions found.")
 else:
