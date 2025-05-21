@@ -42,7 +42,7 @@ def generate_auth_url_for_user(user_email=None):
     flow = InstalledAppFlow.from_client_secrets_file(secret_path, SCOPES)
     auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
     return auth_url  # ✅ Redirects user to Google's authentication page
-print(f"🔗 Generated Auth URL: {auth_url}")
+
 # ----------------------------------
 # 🔄 Retrieve or refresh user credentials
 # ----------------------------------
