@@ -6,7 +6,7 @@ from datetime import datetime
 import time
 from googleapiclient.discovery import build
 import logging
-from backend.auth import get_user_credentials  # ✅ Ensure authentication support
+from backend.auth import get_user_credentials  # ✅ Ensures authentication support
 
 # -------------------------------
 # ✅ Set page config FIRST
@@ -14,7 +14,7 @@ from backend.auth import get_user_credentials  # ✅ Ensure authentication suppo
 st.set_page_config(page_title="YouTufy", layout="wide")
 
 # -------------------------------
-# ✅ Ensure users are logged in (Redirects to login.py)
+# 🏷️ Ensure users are logged in (Redirects to login.py)
 # -------------------------------
 user_email = st.session_state.get("user")
 
@@ -45,7 +45,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# ✅ Redirect "Sign in with Google" to login.py
+# ✅ Redirect "Sign in with Google" to login.py for authentication
 if st.button("🔐 Sign in with Google"):
     st.switch_page("pages/login.py")  # ✅ Redirect users to login page
 
