@@ -5,29 +5,35 @@ import pandas as pd
 from datetime import datetime
 import time
 from googleapiclient.discovery import build
-import logging
-from backend.auth import get_user_credentials  # ✅ Ensures authentication support
 
 # -------------------------------
-# ✅ Set page config FIRST
+# ✅ Page Configuration
 # -------------------------------
 st.set_page_config(page_title="YouTufy", layout="wide")
 
 # -------------------------------
-# 🏷️ Ensure users are logged in (Redirects to login.py)
+# ✅ Import Backend Modules
+# -------------------------------
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
+from backend.auth import get_user_credentials
+
+# -------------------------------
+# ✅ Check User Session
 # -------------------------------
 user_email = st.session_state.get("user")
+username = st.session_state.get("username", "Guest")
 
 if not user_email:
     st.error("🔒 You need to sign in first!")
-    st.switch_page("pages/login.py")  # ✅ Redirects users to login.py
-
-else:
-    creds = get_user_credentials(user_email)
-    st.write(f"🎉 Welcome, {user_email}!")
+    st.switch_page("pages/login.py")
 
 # -------------------------------
-# 🖼️ App UI & Welcome Message
+# ✅ Fetch Google Credentials
+# -------------------------------
+creds = get_user_credentials(user_email)
+
+# -------------------------------
+# 🖼️ UI – Header & Intro
 # -------------------------------
 col1, col2 = st.columns([1, 3])
 with col1:
@@ -37,43 +43,76 @@ with col2:
     st.markdown("<h1 style='margin-top: 10px;'>YouTufy – YouTube Subscriptions App</h1>", unsafe_allow_html=True)
     st.caption("🔒 Google OAuth Verified · Your data is protected")
 
-st.markdown("""
+st.markdown(f"""
     <div style='background-color:#f0f0f0; padding:15px; border-radius:6px; font-size:16px;'>
-        🎥 **Youtufy securely accesses your YouTube subscriptions**.<br>
-        🛡️ We request **youtube.readonly** permission to display your subscribed channels.<br>
-        ✅ Click **Sign in with Google** to grant access and manage your subscriptions easily.
+        🎥 Welcome, <strong>{username}</strong>!<br>
+        ✅ Your YouTube subscriptions will load securely via Google.
     </div>
 """, unsafe_allow_html=True)
 
-# ✅ Redirect "Sign in with Google" to login.py for authentication
-if st.button("🔐 Sign in with Google"):
-    st.switch_page("pages/login.py")  # ✅ Redirect users to login page
-
 st.markdown("---")
 
-# 📡 Subscription Loading
+# -------------------------------
+# ✅ Subscription Fetch Function
+# -------------------------------
+@st.cache_data(ttl=600)
+def fetch_subscriptions(creds):
+    youtube = build("youtube", "v3", credentials=creds)
+    subscriptions = []
+
+    request = youtube.subscriptions().list(
+        part="snippet,contentDetails",
+        mine=True,
+        maxResults=50
+    )
+
+    while request:
+        response = request.execute()
+        subscriptions.extend(response.get("items", []))
+        request = youtube.subscriptions().list_next(request, response)
+
+    return pd.DataFrame(subscriptions)
+
+# -------------------------------
+# 📡 Load Subscriptions
+# -------------------------------
 with st.spinner("📡 Loading your YouTube subscriptions..."):
     try:
         start_time = time.time()
         df = fetch_subscriptions(creds)
         end_time = time.time()
-        st.write(f"⏳ Subscriptions loaded in {end_time - start_time:.2f} seconds")
+        st.write(f"⏳ Loaded in {end_time - start_time:.2f} seconds")
     except Exception as e:
-        st.error("❌ Failed to authenticate or retrieve subscriptions.")
+        st.error("❌ Failed to load subscriptions.")
         st.exception(e)
         st.stop()
 
-if df.empty:
+if df.empty or 'snippet' not in df.columns:
     st.warning("⚠️ No subscriptions found.")
     st.stop()
 
+# -------------------------------
+# 📊 Display Metrics
+# -------------------------------
 st.metric("Total Channels", len(df))
-st.metric("Total Subscribers", f"{int(df['statistics.subscriberCount'].sum()):,}")
-st.metric("Total Videos", f"{int(df['statistics.videoCount'].sum()):,}")
 
+# YouTube API may not provide full stats without another call.
+# So, skipping subscriberCount / videoCount for now unless added.
+
+st.caption(f"📅 Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 st.markdown("---")
 
-# ✅ Privacy, Terms & Cookie Policy Links
+# -------------------------------
+# 🖼️ Display Channels
+# -------------------------------
+for _, row in df.iterrows():
+    snippet = row.get("snippet", {})
+    title = snippet.get("title", "Unknown Channel")
+    st.markdown(f"- **{title}**")
+
+# -------------------------------
+# 🔐 Footer
+# -------------------------------
 st.markdown("""
     <p style='text-align: center; font-size: 13px;'>🔐 Secure & Private |
     <a href='https://www.youtufy.com/privacy' target='_blank'>Privacy Policy</a> |
