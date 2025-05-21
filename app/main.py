@@ -44,9 +44,9 @@ if not user_email:
 
     st.markdown("""
         <div style='background-color:#f0f0f0; padding:15px; border-radius:6px; font-size:16px;'>
-            🎥 <strong>Youtufy securely accesses your YouTube subscriptions</strong>.<br>
-            🛡️ We request <code>youtube.readonly</code> permission only.<br>
-            ✅ Click below to sign in with Google and get started.
+            👉 <strong>Youtufy securely accesses your YouTube subscriptions</strong>.<br>
+            👉 We request <code>youtube.readonly</code> permission only.<br>
+            👉 Click below to sign in with Google and get started.
         </div>
     """, unsafe_allow_html=True)
 
