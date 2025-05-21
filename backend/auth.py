@@ -10,7 +10,7 @@ import logging
 # 🔐 SCOPES & REDIRECT URI
 # ----------------------------------
 SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']
-REDIRECT_URI = st.secrets.get("OAUTH_REDIRECT_URI") or "http://localhost:8501/"
+REDIRECT_URI = st.secrets.get("OAUTH_REDIRECT_URI", "http://localhost:8501/")
 
 # ----------------------------------
 # 🔑 Function to retrieve cached secret path
@@ -20,7 +20,7 @@ def _get_cached_secret_path():
     secret_path = st.secrets.get("OAUTH_SECRET_PATH", None)
 
     if not secret_path or not os.path.exists(secret_path):
-        st.error("❌ Missing OAuth secret file. Please verify setup.")
+        logging.error("❌ Missing OAuth secret file. Please verify setup.")  # ✅ Use logging instead of st.error
         return None
 
     return secret_path
@@ -46,7 +46,7 @@ def generate_auth_url_for_user(user_email=None):
 # ----------------------------------
 def get_user_credentials(user_email):
     """Loads, refreshes, or requests user credentials."""
-    
+
     if not user_email:
         logging.warning("⚠️ No user email provided for credentials lookup.")
         return None
@@ -72,14 +72,14 @@ def get_user_credentials(user_email):
                 creds.refresh(Request())
                 logging.info("🔄 Token refreshed successfully.")
             except Exception as e:
-                st.error(f"❌ Session expired. Please log in again. Error: {e}")
+                logging.error(f"❌ Session expired. Please log in again. Error: {e}")  # ✅ Use logging for production
                 return None  # ✅ Stop execution if refresh fails
 
         if not creds:
             secret_path = _get_cached_secret_path()
             if not secret_path:
                 return None
-            
+
             flow = InstalledAppFlow.from_client_secrets_file(secret_path, SCOPES)
             auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
             st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
