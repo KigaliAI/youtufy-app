@@ -40,15 +40,47 @@ creds = get_user_credentials(user_email)
 
 # ✅ Fetch Subscriptions
 @st.cache_data(ttl=600)
-def fetch_subscriptions(creds):
+def fetch_subscriptions(creds, user_email=None):
     youtube = build("youtube", "v3", credentials=creds)
-    subs = []
-    req = youtube.subscriptions().list(part="snippet", mine=True, maxResults=50)
-    while req:
-        res = req.execute()
-        subs.extend(res.get("items", []))
-        req = youtube.subscriptions().list_next(req, res)
-    return pd.DataFrame(subs)
+    subscriptions = []
+
+    request = youtube.subscriptions().list(
+        part="snippet,contentDetails",
+        mine=True,
+        maxResults=50
+    )
+
+    channel_ids = []
+
+    while request:
+        response = request.execute()
+        items = response.get("items", [])
+        subscriptions.extend(items)
+
+        for item in items:
+            cid = item["snippet"]["resourceId"]["channelId"]
+            channel_ids.append(cid)
+
+        request = youtube.subscriptions().list_next(request, response)
+
+    # 🔄 Enrich with channel statistics
+    enriched_data = []
+    for i in range(0, len(channel_ids), 50):
+        batch_ids = channel_ids[i:i+50]
+        stats_response = youtube.channels().list(
+            part="statistics",
+            id=",".join(batch_ids)
+        ).execute()
+
+        stats_map = {item["id"]: item["statistics"] for item in stats_response.get("items", [])}
+
+        for sub in subscriptions[i:i+50]:
+            cid = sub["snippet"]["resourceId"]["channelId"]
+            sub["statistics"] = stats_map.get(cid, {})
+
+        enriched_data.extend(subscriptions[i:i+50])
+
+    return pd.DataFrame(enriched_data)
 
 with st.spinner("📡 Fetching subscriptions..."):
     try:
@@ -62,6 +94,18 @@ if df.empty:
     st.warning("⚠️ No subscriptions found.")
 else:
     st.metric("Total Channels", len(df))
+
+    try:
+        df["subscribers"] = pd.to_numeric(df["statistics"].apply(lambda s: s.get("subscriberCount", 0)), errors="coerce")
+        df["videos"] = pd.to_numeric(df["statistics"].apply(lambda s: s.get("videoCount", 0)), errors="coerce")
+        df["views"] = pd.to_numeric(df["statistics"].apply(lambda s: s.get("viewCount", 0)), errors="coerce")
+
+        st.metric("Total Subscribers", f"{int(df['subscribers'].sum()):,}")
+        st.metric("Total Videos", f"{int(df['videos'].sum()):,}")
+    except Exception as e:
+        st.warning("⚠️ Could not display metrics. Stats missing.")
+
     st.caption(f"📅 Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     for _, row in df.iterrows():
-        st.markdown(f"- **{row['snippet']['title']}**")
+        title = row.get("snippet", {}).get("title", "Unknown")
+        st.markdown(f"- **{title}**")
