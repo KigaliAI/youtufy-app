@@ -20,7 +20,7 @@ def _get_cached_secret_path():
     secret_path = st.secrets.get("OAUTH_SECRET_PATH", None)
 
     if not secret_path or not os.path.exists(secret_path):
-        logging.error("❌ Missing OAuth secret file. Please verify setup.")  # ✅ Use logging instead of st.error
+        logging.error("❌ Missing OAuth secret file. Please verify setup.")  # ✅ Use logging for production
         return None
 
     return secret_path
@@ -32,12 +32,16 @@ def generate_auth_url_for_user(user_email=None):
     """Always return authentication URL to allow Google login."""
     secret_path = _get_cached_secret_path()
     if not secret_path:
+        logging.error("❌ Authentication failed: OAuth secret file missing.")
         return None
 
-    flow = InstalledAppFlow.from_client_secrets_file(secret_path, SCOPES)
-    auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
-
-    return auth_url  # ✅ Redirects user to Google's authentication page
+    try:
+        flow = InstalledAppFlow.from_client_secrets_file(secret_path, SCOPES)
+        auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
+        return auth_url  # ✅ Redirects user to Google's authentication page
+    except Exception as e:
+        logging.error(f"❌ Error generating auth URL: {e}")
+        return None
 
 # ✅ Fix: `user_email` is now optional to prevent login errors
 
@@ -72,17 +76,21 @@ def get_user_credentials(user_email):
                 creds.refresh(Request())
                 logging.info("🔄 Token refreshed successfully.")
             except Exception as e:
-                logging.error(f"❌ Session expired. Please log in again. Error: {e}")  # ✅ Use logging for production
+                logging.error(f"❌ Token refresh failed: {e}")
                 return None  # ✅ Stop execution if refresh fails
 
         if not creds:
             secret_path = _get_cached_secret_path()
             if not secret_path:
+                logging.error("❌ Authentication failed: OAuth secret file missing.")
                 return None
 
-            flow = InstalledAppFlow.from_client_secrets_file(secret_path, SCOPES)
-            auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
-            st.markdown(f"[Click here to authenticate with Google]({auth_url})", unsafe_allow_html=True)
-            return None
+            try:
+                flow = InstalledAppFlow.from_client_secrets_file(secret_path, SCOPES)
+                auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
+                return None  # ✅ Prevent UI interruption for production
+            except Exception as e:
+                logging.error(f"❌ Error generating authentication flow: {e}")
+                return None
 
     return creds
