@@ -1,6 +1,6 @@
 import streamlit as st
 import logging
-from backend.auth import get_user_credentials
+from backend.auth import get_user_credentials, store_oauth_credentials  # ✅ Import OAuth storage
 import pandas as pd
 from datetime import datetime
 import time
@@ -9,12 +9,12 @@ from googleapiclient.discovery import build
 st.set_page_config(page_title="YouTufy", layout="wide")
 
 # -------------------------------
-# ✅ Detect login
+# ✅ Detect login & OAuth token existence
 # -------------------------------
 user_email = st.session_state.get("user")
 username = st.session_state.get("username", "Guest")
 
-if not user_email:
+if not user_email or not st.session_state.get("oauth_token"):  # ✅ Ensure OAuth token is available
     st.warning("🔐 Please sign in to access your subscriptions.")
 
     st.markdown("""
@@ -36,12 +36,14 @@ if st.button("🔄 Refresh Subscriptions"):
     st.cache_data.clear()
     st.rerun()
 
-# ✅ Fetch credentials safely
-creds = get_user_credentials(user_email)
+# ✅ Fetch credentials safely & store OAuth
+creds = get_user_credentials()
 
 if not creds:
     st.error("❌ Failed to authenticate. Please sign in again.")
     st.stop()
+
+store_oauth_credentials(creds)  # ✅ Save OAuth token in session
 
 # ✅ Fetch Subscriptions
 @st.cache_data(ttl=600)
