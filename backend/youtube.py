@@ -6,15 +6,19 @@ import pandas as pd
 import streamlit as st
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from backend.auth import get_user_credentials  # ✅ Import authentication function
 
 @st.cache_data(show_spinner=False, ttl=3600)
-async def fetch_subscriptions(creds, user_email):
+async def fetch_subscriptions():
     """Fetch YouTube subscriptions asynchronously using batch requests."""
-    
-    # ✅ Validate credentials before proceeding
-    if not creds or not creds.valid:
-        raise ValueError("⚠️ Invalid credentials. Ensure OAuth setup is complete.")
 
+    # ✅ Validate stored OAuth credentials
+    oauth_token = st.session_state.get("oauth_token")
+    
+    if not oauth_token:
+        raise ValueError("⚠️ Missing OAuth token. Please re-authenticate.")
+
+    creds = get_user_credentials()  # ✅ Use stored credentials
     youtube = build('youtube', 'v3', credentials=creds)
 
     # 🔁 Step 1: Fetch all subscriptions
@@ -103,7 +107,7 @@ async def fetch_subscriptions(creds, user_email):
 
     # 📎 Step 4: Optional backup (disable if not needed)
     try:
-        user_dir = os.path.join("data", "user_subscriptions", user_email)
+        user_dir = os.path.join("data", "user_subscriptions")
         os.makedirs(user_dir, exist_ok=True)
         with open(f"{user_dir}/youtube_subscriptions.json", 'w', encoding='utf-8') as f:
             json.dump(channel_data, f, indent=2, ensure_ascii=False)
@@ -114,6 +118,5 @@ async def fetch_subscriptions(creds, user_email):
     return pd.DataFrame(channel_data)
 
 # Run the async function synchronously if needed
-def fetch_subscriptions_sync(creds, user_email):
-    return asyncio.run(fetch_subscriptions(creds, user_email))
-
+def fetch_subscriptions_sync():
+    return asyncio.run(fetch_subscriptions())
