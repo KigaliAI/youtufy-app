@@ -1,4 +1,5 @@
 # app/controllers/dashboard.py
+
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -11,8 +12,14 @@ def load_dashboard(user_email, username):
     st.caption("🔒 Your data is protected · Access granted via Google OAuth (`youtube.readonly`)")
     st.success(f"🎉 Welcome back, {username.capitalize()}!")
 
+    # 🔍 Debug: ensure credentials load path
+    st.write("🔧 Debug: loading user credentials...")
+    creds = get_user_credentials()  # No argument passed
+    if not creds:
+        st.error("❌ Failed to load Google credentials.")
+        return
+
     with st.spinner("📡 Loading your YouTube subscriptions..."):
-        creds = get_user_credentials(user_email)
         df = fetch_subscriptions(creds, user_email)
 
     if df.empty or 'statistics' not in df.columns or 'snippet' not in df.columns:
