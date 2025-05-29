@@ -1,40 +1,34 @@
-# backend/oauth.py
+import os
 import json
+import tempfile
 import streamlit as st
 from google_auth_oauthlib.flow import Flow
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
 
-# Define required scope
-SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']
-
+SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
 
 def get_flow(redirect_uri):
-    """
-    Create and return a Google OAuth flow using secrets from Streamlit.
-    Loads the client config from embedded JSON in secrets.toml.
-    """
-    secret_json = st.secrets["GOOGLE_CLIENT_SECRET_JSON"]
-    client_config = json.loads(secret_json)
-    return Flow.from_client_config(client_config, SCOPES, redirect_uri=redirect_uri)
+    # Load secrets
+    secret_path = st.secrets.get("GOOGLE_CLIENT_SECRET_PATH")
+    json_string = st.secrets.get("GOOGLE_CLIENT_SECRET_JSON")
 
+    # 🔍 DEBUG LOGGING
+    st.write("🔍 DEBUG: client secret path =", secret_path)
+    st.write("🔍 DEBUG: using embedded JSON?" , bool(json_string))
 
-def get_credentials_from_code(code, redirect_uri):
-    """
-    Exchange an authorization code for OAuth credentials.
-    """
-    flow = get_flow(redirect_uri)
-    flow.fetch_token(code=code)
-    return flow.credentials
+    # Try loading from file if available
+    if secret_path and os.path.exists(secret_path):
+        st.write("✅ Using client secret from file.")
+        return Flow.from_client_secrets_file(secret_path, SCOPES, redirect_uri=redirect_uri)
 
+    # Fallback to embedded JSON
+    elif json_string:
+        try:
+            client_config = json.loads(json_string)
+            st.write("✅ Using client secret from embedded JSON.")
+            return Flow.from_client_config(client_config, SCOPES, redirect_uri=redirect_uri)
+        except Exception as e:
+            st.error("❌ Failed to parse embedded JSON.")
+            raise e
 
-def refresh_credentials(creds_json):
-    """
-    Refresh stored credentials if expired.
-    """
-    creds = Credentials.from_authorized_user_info(json.loads(creds_json), SCOPES)
-
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-
-    return creds
+    # If nothing is found
+    raise ValueError("❌ No valid Google client secret found in secrets.toml.")
