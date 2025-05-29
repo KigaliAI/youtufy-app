@@ -1,13 +1,16 @@
 # app/main.py
 import streamlit as st
-from app.controllers.dashboard import load_dashboard
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from controllers.dashboard import load_dashboard
 
 st.set_page_config(page_title="YouTufy", layout="wide")
 
 user_email = st.session_state.get("user")
 username = st.session_state.get("username")
 
-# Minimal page now, only loads dashboard if user is authenticated
+# Loads dashboard if user is authenticated
 if user_email:
     load_dashboard(user_email, username)
 else:

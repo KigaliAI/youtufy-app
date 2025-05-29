@@ -1,10 +1,11 @@
 # app/pages/dashboard.py
 
-import os
 import json
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from backend.auth import store_oauth_credentials
 from backend.youtube import fetch_subscriptions

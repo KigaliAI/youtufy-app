@@ -1,11 +1,13 @@
+# app/pages/login.py
+
 import streamlit as st
 import sqlite3
 import hashlib
-import sys
-sys.path.append("./utils")  # Ensure Streamlit recognizes the utils module
-from tokens import generate_token
+import sys, os
 from dotenv import load_dotenv
-import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from utils.tokens import generate_token  # Adjusted import
 
 st.set_page_config(page_title="Login", layout="centered")
 st.title("🔐 Login to YouTufy")
@@ -40,10 +42,10 @@ if login_button:
         if not verified:
             st.error("❌ Your account is not yet verified. Check your email.")
         else:
-            st.session_state.user = email
-            st.session_state.username = username
+            st.session_state["user"] = email
+            st.session_state["username"] = username
             st.success(f"✅ Welcome back, {username}!")
-            st.switch_page("main.py")
+            st.switch_page("pages/dashboard.py")  # Redirect to dashboard
     else:
         st.error("❌ Invalid email or password.")
 
