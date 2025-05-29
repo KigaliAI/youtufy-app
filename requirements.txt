@@ -11,9 +11,10 @@ python-dotenv
 email-validator
 itsdangerous
 
-# Email sending (standard lib, but smtplib relies on these)
+# Email sending (used by smtplib, often indirectly)
 aiohttp
 asyncio
 
 # Data handling
 pandas
+

@@ -1,12 +1,41 @@
-# Secrets should be ignored
-.env                      
-config/client_secret.json 
-.streamlit/secrets.toml   
+# 🔒 Sensitive files
+.env
+*.env
+config/client_secret.json
+.streamlit/secrets.toml
 
-# Local DB & cache
-data/*.db                 
-users/                    
-__pycache__/              
-*.pyc                     
-data/**/*.json
+# 🧠 User session + DB
+data/*.db
+data/*.json
+session_data.json
+users/
+
+# 🐍 Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# 📦 Virtual environments
+.venv/
+env/
+venv/
+
+# ⚙️ Temp & logs
 *.log
+*.tmp
+*.swp
+*.bak
+*.temp
+
+# 📓 Jupyter Notebooks (if used)
+.ipynb_checkpoints/
+
+# 🖥️ System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# 🧰 VS Code settings (optional)
+.vscode/
