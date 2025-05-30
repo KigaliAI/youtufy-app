@@ -1,56 +1,65 @@
 import os
 import json
 import logging
+import streamlit as st
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
-from dotenv import load_dotenv
 
-load_dotenv()
-
+# ----------------------------------
+# 🔐 SCOPES & REDIRECT URI
+# ----------------------------------
 SCOPES = ['https://www.googleapis.com/auth/youtube.readonly']
-USER_DATA_DIR = "users"
+REDIRECT_URI = st.secrets.get("OAUTH_REDIRECT_URI", "http://localhost:8501/")
 
-# 🔐 Store OAuth credentials in a file
+# ----------------------------------
+# 🔐 Store OAuth Credentials in Session (and optionally file/db)
+# ----------------------------------
 def store_oauth_credentials(creds, user_email):
-    """Saves OAuth credentials for a user in a JSON token file."""
-    if not user_email:
-        logging.error("❌ store_oauth_credentials: user_email is missing.")
-        return
+    """Stores full OAuth credentials in session state and optionally disk."""
+    if creds and creds.valid:
+        creds_json = creds.to_json()
+        st.session_state["google_creds"] = creds_json
+        st.session_state["user"] = user_email
+        st.session_state["authenticated"] = True
+        logging.info(f"✅ Stored credentials in session for {user_email}")
 
-    user_dir = os.path.join(USER_DATA_DIR, user_email)
-    os.makedirs(user_dir, exist_ok=True)
-    token_path = os.path.join(user_dir, "token.json")
+        # Optional: persist to disk or DB
+        path = f"users/{user_email.replace('@', '_at_')}_creds.json"
+        os.makedirs("users", exist_ok=True)
+        with open(path, "w") as f:
+            f.write(creds_json)
 
-    with open(token_path, "w") as f:
-        f.write(creds.to_json())
-    logging.info(f"✅ Stored credentials for {user_email}")
-
-# 🔑 Load user credentials from file
+# ----------------------------------
+# 🔑 Retrieve and Refresh User Credentials
+# ----------------------------------
 def get_user_credentials(user_email):
-    """Loads stored credentials or returns None if missing/invalid."""
-    if not user_email:
-        raise ValueError("❌ get_user_credentials: user_email must not be None")
+    """Loads credentials from session or disk and refreshes if expired."""
+    logging.debug("🔧 Debug: loading user credentials...")
 
-    token_path = os.path.join(USER_DATA_DIR, user_email, "token.json")
+    creds = None
 
-    if not os.path.exists(token_path):
-        logging.warning(f"⚠️ Token not found for {user_email}")
-        return None
+    # 1. Try loading from session
+    if "google_creds" in st.session_state:
+        creds = Credentials.from_authorized_user_info(json.loads(st.session_state["google_creds"]), SCOPES)
+    else:
+        # 2. Try loading from disk
+        path = f"users/{user_email.replace('@', '_at_')}_creds.json"
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                creds = Credentials.from_authorized_user_info(json.load(f), SCOPES)
 
-    try:
-        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+    # 3. Refresh if needed
+    if creds and creds.expired and creds.refresh_token:
+        try:
+            creds.refresh(Request())
+            store_oauth_credentials(creds, user_email)
+            logging.info("🔁 Refreshed expired token.")
+        except Exception as e:
+            logging.error(f"❌ Failed to refresh token: {e}")
+            return None
 
-        if not creds.valid:
-            if creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-                store_oauth_credentials(creds, user_email)
-                logging.info(f"🔄 Refreshed token for {user_email}")
-            else:
-                logging.warning(f"❌ Invalid or expired token for {user_email}")
-                return None
-
+    if creds and creds.valid:
         return creds
 
-    except Exception as e:
-        logging.error(f"❌ Failed to load credentials for {user_email}: {e}")
-        return None
+    logging.warning("⚠️ No valid credentials available.")
+    return None
