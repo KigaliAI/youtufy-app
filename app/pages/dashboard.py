@@ -1,14 +1,13 @@
 # app/pages/dashboard.py
+
 import sys, os
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
-import json
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-
 from backend.oauth import get_flow, get_credentials_from_code, refresh_credentials
 from backend.auth import store_oauth_credentials
 from backend.youtube import fetch_subscriptions
@@ -18,18 +17,22 @@ st.set_page_config(page_title="YouTufy – Dashboard", layout="wide")
 
 REDIRECT_URI = "https://youtufy-one.streamlit.app/dashboard"
 
+# -------------------------------
 # 🔐 Session & OAuth Handling
+# -------------------------------
 user_email = st.session_state.get("user")
 username = st.session_state.get("username")
 google_creds_json = st.session_state.get("google_creds")
 creds = None
 
 if user_email and google_creds_json:
+    # Refresh credentials silently
     creds = refresh_credentials(google_creds_json)
     st.session_state["google_creds"] = creds.to_json()
     st.session_state["authenticated"] = True
 
 elif st.query_params.get("code"):
+    # Handle OAuth redirect callback
     try:
         code = st.query_params["code"]
         creds = get_credentials_from_code(code, REDIRECT_URI)
@@ -39,6 +42,7 @@ elif st.query_params.get("code"):
             st.error("❌ Google login failed: No email found.")
             st.stop()
 
+        # Store in session
         st.session_state["user"] = user_email
         st.session_state["username"] = user_email.split("@")[0]
         st.session_state["google_creds"] = creds.to_json()
@@ -46,12 +50,15 @@ elif st.query_params.get("code"):
         store_oauth_credentials(creds, user_email)
 
         st.success(f"✅ Logged in as {user_email}")
+        st.rerun()
 
     except Exception as e:
         st.error("❌ Google OAuth flow failed.")
         st.exception(e)
         st.stop()
+
 else:
+    # 🔗 Begin OAuth Flow
     flow = get_flow(REDIRECT_URI)
     auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline")
 
@@ -70,7 +77,9 @@ else:
     """, unsafe_allow_html=True)
     st.stop()
 
-# ✅ Dashboard UI
+# -------------------------------
+# ✅ Render Dashboard
+# -------------------------------
 if st.session_state.get("authenticated"):
     st.markdown("<h1 style='font-size:1.8rem; font-weight:bold; color:magenta;'>YouTufy – Your YouTube Subscriptions Dashboard</h1>", unsafe_allow_html=True)
     st.caption("🔒 Google OAuth Verified · Your data is protected")
