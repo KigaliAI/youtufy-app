@@ -1,34 +1,36 @@
 # app/controllers/dashboard.py
-
-import streamlit as st
+import os
+import sys
 import pandas as pd
 from datetime import datetime
+import streamlit as st
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
+
+from backend.oauth import get_user_credentials
 from backend.youtube import fetch_subscriptions
-from app.components.channel_card import channel_card
-from backend.auth import get_user_credentials
 
 def load_dashboard(user_email, username):
-    st.markdown("<h1 style='font-size:1.8rem; font-weight:bold; color:magenta;'>YouTufy – Your YouTube Subscriptions Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='font-size:1.8rem; font-weight:bold; color:rgb(112, 10, 160);'>YouTufy – Your YouTube Subscriptions Dashboard</h1>", unsafe_allow_html=True)
     st.caption("🔒 Your data is protected · Access granted via Google OAuth (`youtube.readonly`)")
     st.success(f"🎉 Welcome back, {username.capitalize()}!")
 
-    # 🔍 Debug: ensure credentials load path
-    st.write("🔧 Debug: loading user credentials...")
-    creds = get_user_credentials()  # No argument passed
-    if not creds:
-        st.error("❌ Failed to load Google credentials.")
-        return
-
     with st.spinner("📡 Loading your YouTube subscriptions..."):
-        df = fetch_subscriptions(creds, user_email)
+        try:
+            creds = get_user_credentials(user_email)
+            df = fetch_subscriptions(creds, user_email)
+        except Exception as e:
+            st.error(f"⚠️ Error fetching subscriptions: {str(e)}")
+            st.stop()
 
     if df.empty or 'statistics' not in df.columns or 'snippet' not in df.columns:
-        st.warning("⚠️ No subscriptions found.")
+        st.warning("⚠️ No valid subscription data found.")
         st.stop()
 
-    for col in ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.viewCount']:
+    numeric_cols = ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.viewCount']
+    for col in numeric_cols:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
         else:
             df[col] = 0
 
@@ -41,6 +43,31 @@ def load_dashboard(user_email, username):
 
     st.markdown("---")
 
+    # 🔽 Render each channel as clickable card
     for _, row in df.iterrows():
-        if isinstance(row.get("snippet"), dict):
-            channel_card(row)
+        snippet = row.get("snippet", {})
+        stats = row.get("statistics", {})
+        title = snippet.get("title", "Unknown Channel")
+        channel_url = row.get("channelUrl")
+        subs = int(stats.get("subscriberCount", 0))
+        videos = int(stats.get("videoCount", 0))
+        latest = row.get("latestVideoDate", "N/A")
+
+        # ✅ Clickable box layout
+        if channel_url:
+            st.markdown(
+                f"""<a href="{channel_url}" target="_blank" style="text-decoration:none;">
+                        <div style="background-color:#8F00FF;padding:10px 15px;border-radius:6px;display:inline-block;margin-bottom:5px;">
+                            <span style="color:white;font-weight:bold;">📺 {title}</span>
+                        </div>
+                    </a>""",
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(f"### {title}")
+
+        st.write(f"👥 Subscribers: {subs:,}")
+        st.write(f"🎞️ Videos: {videos:,}")
+        st.write(f"📅 Latest Video: {latest}")
+        st.markdown("---")
+
