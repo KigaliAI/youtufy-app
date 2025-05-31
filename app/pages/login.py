@@ -1,4 +1,5 @@
 # app/pages/login.py
+
 import streamlit as st
 import sqlite3
 import hashlib
@@ -6,19 +7,17 @@ from utils.tokens import generate_token
 from dotenv import load_dotenv
 import os
 
-# Setup
 st.set_page_config(page_title="Login", layout="centered")
 st.title("🔐 Login to YouTufy")
 
-# Load environment variables
+# Load environment vars
 load_dotenv()
 DB_PATH = os.getenv("USER_DB", "data/YouTufy_users.db")
 
-# ------------------------
-# Helper Functions
-# ------------------------
+
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
+
 
 def authenticate_user(email, password):
     conn = sqlite3.connect(DB_PATH)
@@ -32,9 +31,7 @@ def authenticate_user(email, password):
             return db_username, verified
     return None, False
 
-# ------------------------
-# Email/Password Login Form
-# ------------------------
+
 with st.form("login_form"):
     email = st.text_input("Email")
     password = st.text_input("Password", type="password")
@@ -49,21 +46,10 @@ if login_button:
             st.session_state.user = email
             st.session_state.username = username
             st.success(f"✅ Welcome back, {username}!")
-            st.switch_page("main.py")
+            st.rerun()  # ✅ Trigger reload of main.py
     else:
         st.error("❌ Invalid email or password.")
 
-# ------------------------
-# Optional Links
-# ------------------------
 st.markdown("---")
-
 if st.button("🔑 Forgot Password?"):
     st.switch_page("pages/reset_password.py")
-
-# ------------------------
-# Optional: Google Login
-# ------------------------
-st.markdown("### Or login with Google")
-if st.button("🔐 Continue with Google"):
-    st.switch_page("pages/google_login.py")
