@@ -1,3 +1,4 @@
+#backend/auth.py
 import sqlite3
 import hashlib
 import os
@@ -7,11 +8,11 @@ from dotenv import load_dotenv
 load_dotenv()
 DB_PATH = os.getenv("USER_DB", "data/YouTufy_users.db")
 
-# ✅ Hash password using SHA256
+# Hash password using SHA256
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
-# ✅ Authenticate user by email + password
+# Authenticate user by email + password
 def authenticate_user(email: str, password: str):
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -25,7 +26,7 @@ def authenticate_user(email: str, password: str):
             return db_username, verified
     return None, False
 
-# ✅ Create new user (registration)
+# Create new user 
 def create_user(email: str, username: str, password: str):
     hashed = hash_password(password)
     conn = sqlite3.connect(DB_PATH)
@@ -34,12 +35,12 @@ def create_user(email: str, username: str, password: str):
     cur.execute("""
         INSERT INTO users (email, username, password, verified)
         VALUES (?, ?, ?, ?)
-    """, (email, username, hashed, 0))  # Default: not verified
+    """, (email, username, hashed, 0))  
 
     conn.commit()
     conn.close()
 
-# ✅ Set user as verified (used after email verification)
+# Set user as verified 
 def verify_user(email: str):
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -47,7 +48,7 @@ def verify_user(email: str):
     conn.commit()
     conn.close()
 
-# ✅ Reset password (used via reset flow)
+# Reset password 
 def update_password(email: str, new_password: str):
     hashed = hash_password(new_password)
     conn = sqlite3.connect(DB_PATH)
@@ -56,7 +57,7 @@ def update_password(email: str, new_password: str):
     conn.commit()
     conn.close()
 
-# ✅ Check if user exists
+# Check if user exists
 def user_exists(email: str) -> bool:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()

@@ -5,47 +5,58 @@ import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
 
-from backend.oauth import get_user_credentials, store_oauth_credentials
+from backend.oauth import (
+    get_user_credentials,
+    store_oauth_credentials,
+    get_flow,
+    get_credentials_from_code,
+    refresh_credentials
+)
 from backend.youtube import fetch_subscriptions
-from backend.oauth import get_flow, get_credentials_from_code, refresh_credentials
 from app.components import channel_card
 
+# ✅ Config
 st.set_page_config(page_title="YouTufy – Dashboard", layout="wide")
 st.title("🌍 Sign in with Google")
 
 load_dotenv()
-REDIRECT_URI = "https://youtufy-one.streamlit.app/app/pages/google_login"  # Must match Google Console
+REDIRECT_URI = "https://youtufy-one.streamlit.app/app/pages/google_login"
 
-# Session flags
+# ✅ Session state
 user_email = st.session_state.get("user")
 username = st.session_state.get("username")
 google_creds_json = st.session_state.get("google_creds")
 authenticated = st.session_state.get("authenticated", False)
 
-# ✅ OAuth Callback Handler (Google redirects here with ?code=...)
+# ✅ Handle Google redirect (?code=...) after consent
 if "code" in st.query_params and not authenticated:
+    st.info("🔁 Exchanging code for tokens...")
     try:
         code = st.query_params["code"]
         creds = get_credentials_from_code(code, REDIRECT_URI)
-        user_email = creds.id_token.get("email")
 
+        user_email = creds.id_token.get("email")
         if not user_email:
             st.error("❌ Google login failed: No email found.")
             st.stop()
 
+        # Save session
         st.session_state["user"] = user_email
         st.session_state["username"] = user_email.split("@")[0]
         st.session_state["google_creds"] = creds.to_json()
         st.session_state["authenticated"] = True
 
+        # Save to disk
         store_oauth_credentials(creds, user_email)
-        st.rerun()  # Refresh to render dashboard
+
+        st.success("✅ Login successful. Reloading...")
+        st.rerun()
     except Exception as e:
-        st.error("❌ Google OAuth flow failed.")
+        st.error("❌ Google OAuth failed during token exchange.")
         st.exception(e)
         st.stop()
 
-# ✅ Trigger Login if Not Authenticated
+# ✅ Not authenticated → show Google login button
 if not st.session_state.get("authenticated"):
     flow = get_flow(REDIRECT_URI)
     auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline")
@@ -65,12 +76,12 @@ if not st.session_state.get("authenticated"):
     """, unsafe_allow_html=True)
     st.stop()
 
-# ✅ Authenticated → Fetch Subscriptions
+# ✅ Authenticated user – fetch dashboard
 st.markdown("<h1 style='font-size:1.8rem; font-weight:bold; color:magenta;'>YouTufy – Your YouTube Subscriptions Dashboard</h1>", unsafe_allow_html=True)
 st.caption("🔒 Google OAuth Verified · Your data is protected")
 st.success(f"🎉 Welcome back, {st.session_state.username.capitalize()}!")
 
-# Refresh creds in case of expired token
+# Refresh credentials if expired
 creds = refresh_credentials(st.session_state["google_creds"])
 st.session_state["google_creds"] = creds.to_json()
 
@@ -81,6 +92,7 @@ if df.empty or 'statistics' not in df.columns or 'snippet' not in df.columns:
     st.warning("⚠️ No subscriptions found.")
     st.stop()
 
+# Normalize values
 for col in ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.viewCount']:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -89,6 +101,7 @@ for col in ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.v
 
 df = df[df['snippet'].notna() & df['statistics'].notna()]
 
+# Show metrics
 st.metric("Total Channels", len(df))
 st.metric("Total Subscribers", f"{int(df['statistics.subscriberCount'].sum()):,}")
 st.metric("Total Videos", f"{int(df['statistics.videoCount'].sum()):,}")
@@ -96,6 +109,7 @@ st.caption(f"📅 Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 st.markdown("---")
 
+# Show channel cards
 for _, row in df.iterrows():
     if isinstance(row.get("snippet"), dict):
         channel_card(row)

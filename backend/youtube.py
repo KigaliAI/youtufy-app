@@ -1,3 +1,4 @@
+#backend/youtube.py
 import json
 import os
 import pandas as pd
@@ -7,7 +8,7 @@ from googleapiclient.errors import HttpError
 def fetch_subscriptions(creds, user_email):
     youtube = build('youtube', 'v3', credentials=creds)
 
-    # 🔁 Step 1: Fetch all subscriptions
+    # Step 1: Fetch all subscriptions
     subscriptions = []
     next_page_token = None
     try:
@@ -27,7 +28,7 @@ def fetch_subscriptions(creds, user_email):
         print("YouTube API Error during subscriptions fetch:", e)
         return pd.DataFrame()
 
-    # 🧠 Step 2: Extract channel IDs
+    # Step 2: Extract channel IDs
     channel_ids = []
     for item in subscriptions:
         snippet = item.get('snippet', {})
@@ -40,7 +41,7 @@ def fetch_subscriptions(creds, user_email):
             title = snippet.get('title', 'Unknown')
             print(f"⚠️ Skipped subscription with missing channelId. Title: {title}")
 
-    # 📦 Step 3: Fetch channel metadata
+    # Step 3: Fetch channel metadata
     channel_data = []
     for i in range(0, len(channel_ids), 50):  # max 50 per call
         try:
@@ -79,7 +80,7 @@ def fetch_subscriptions(creds, user_email):
             except Exception:
                 latest_date = None
 
-            # ✅ Add channel ID and URL
+            # Add channel ID and URL
             channel_id = item.get("id")
             if not channel_id:
                 snippet_title = item.get("snippet", {}).get("title", "Unknown")
@@ -95,13 +96,13 @@ def fetch_subscriptions(creds, user_email):
             item["statistics"] = stats
             channel_data.append(item)
 
-    # 📎 Step 4: Backup user data
+    # Step 4: Backup user data
     user_dir = f'users/{user_email}'
     os.makedirs(user_dir, exist_ok=True)
     with open(f"{user_dir}/youtube_subscriptions.json", 'w', encoding='utf-8') as f:
         json.dump(channel_data, f, indent=2, ensure_ascii=False)
 
-    # ✅ Step 5: Return DataFrame
+    # Step 5: Return DataFrame
     df = pd.DataFrame(channel_data)
     if not df.empty:
         for key in ['snippet', 'statistics', 'channelUrl', 'latestVideoDate']:

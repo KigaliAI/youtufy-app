@@ -5,7 +5,7 @@ def channel_card(channel_data):
     snippet = channel_data.get("snippet", {})
     statistics = channel_data.get("statistics", {})
 
-    # Extract channel details with safe defaults
+    
     title = snippet.get("title", "Unknown Channel")
     description = snippet.get("description", "No description available.")
     thumbnail = snippet.get("thumbnails", {}).get("default", {}).get("url", "https://via.placeholder.com/60")

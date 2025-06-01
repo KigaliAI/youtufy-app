@@ -1,39 +1,47 @@
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+#utils/tokens.py
+import hashlib
+import secrets
+import time
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "SuperSecretYouTufyKey")
-TOKEN_SALT = os.getenv("TOKEN_SALT", "YouTufyTokenSalt")
-
-# Create serializer
-serializer = URLSafeTimedSerializer(secret_key=SECRET_KEY)
+SALT = os.getenv("TOKEN_SALT", "YouTufyDefaultSalt")
+EXPIRATION_SECONDS = int(os.getenv("TOKEN_EXPIRATION", 3600))  # Default: 1 hour
 
 
 def generate_token(email: str) -> str:
     """
-    Generate a signed, time-safe token based on the user's email.
+    Generate a token with embedded timestamp for validation.
+    Format: <token>.<timestamp>
     """
-    return serializer.dumps(email, salt=TOKEN_SALT)
+    timestamp = str(int(time.time()))
+    random_hex = secrets.token_hex(16)
+    raw_string = f"{email}|{timestamp}|{SALT}|{random_hex}"
+    token = hashlib.sha256(raw_string.encode()).hexdigest()
+    return f"{token}.{timestamp}"
 
 
-def verify_token(token: str, max_age_seconds=3600) -> str or None:
+def verify_token(provided_token: str, stored_token: str) -> bool:
     """
-    Verify the token is valid and not expired.
-    Returns the original email if valid, or None.
+    Validate the token hash and ensure it's not expired.
     """
     try:
-        email = serializer.loads(token, salt=TOKEN_SALT, max_age=max_age_seconds)
-        return email
-    except SignatureExpired:
-        print("❌ Token expired.")
-        return None
-    except BadSignature:
-        print("❌ Invalid token signature.")
-        return None
+        provided_hash, provided_ts = provided_token.split(".")
+        stored_hash, stored_ts = stored_token.split(".")
 
+        # Ensure token content matches
+        if provided_hash != stored_hash:
+            return False
 
-# Optional: Validate against stored token (if needed)
-def match_token(provided_token: str, stored_token: str) -> bool:
-    return provided_token == stored_token
+        # Check expiration
+        current_ts = int(time.time())
+        token_ts = int(provided_ts)
+        if (current_ts - token_ts) > EXPIRATION_SECONDS:
+            return False
+
+        return True
+    except Exception as e:
+        print("❌ Token verification error:", e)
+        return False

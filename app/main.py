@@ -1,5 +1,4 @@
 # app/main.py
-
 import streamlit as st
 import sys
 import os
@@ -19,9 +18,17 @@ if user_email:
 else:
     st.markdown("<h1 style='font-size:2.5rem; font-weight:bold; color:magenta; text-align: center;'>Welcome to YouTufy</h1>", unsafe_allow_html=True)
     st.markdown("<h2 style='font-size:1.8rem; font-weight:bold; color:magenta; text-align: center;'>Your YouTube Subscriptions System</h2>", unsafe_allow_html=True)
-
+    
     st.markdown("<p style='font-size:1.1rem; color:magenta;'>YouTufy App helps you to organize and manage all your YouTube subscriptions in one place.</p>", unsafe_allow_html=True)
+    
     st.markdown("<p style='font-size:1.1rem; color:magenta;'>🔒 Your data is protected · Access granted via Google OAuth ('youtube.readonly' permission)</p>", unsafe_allow_html=True)
+    
+    st.markdown("""
+    <p style='font-size:1.1rem; font-weight:bold; color:magenta;'>
+    👉 <strong>Youtufy securely accesses your YouTube subscriptions</strong>.
+    </p>
+    """, unsafe_allow_html=True)
+
     st.markdown("<p style='font-size:1.1rem; font-weight:bold; color:magenta;'>✅ <strong>Choose one of the login methods:</strong></p>", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
@@ -53,6 +60,7 @@ else:
         </a>
         """, unsafe_allow_html=True)
 
+    # Footer
     st.markdown("---")
     st.markdown("""
     <p style='text-align: center; font-size:20px;'>

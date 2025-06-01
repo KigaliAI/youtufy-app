@@ -11,7 +11,7 @@ from backend.oauth import get_user_credentials
 from backend.youtube import fetch_subscriptions
 
 def load_dashboard(user_email, username):
-    st.markdown("<h1 style='font-size:1.8rem; font-weight:bold; color:rgb(112, 10, 160);'>YouTufy – Your YouTube Subscriptions Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='font-size:1.8rem; font-weight:bold; color:rgb(112, 10, 160);'>YouTufy – Your YouTube Subscriptions System</h1>", unsafe_allow_html=True)
     st.caption("🔒 Your data is protected · Access granted via Google OAuth (`youtube.readonly`)")
     st.success(f"🎉 Welcome back, {username.capitalize()}!")
 
@@ -43,7 +43,7 @@ def load_dashboard(user_email, username):
 
     st.markdown("---")
 
-    # 🔽 Render each channel as clickable card
+    # Render each channel as clickable card
     for _, row in df.iterrows():
         snippet = row.get("snippet", {})
         stats = row.get("statistics", {})
@@ -53,7 +53,7 @@ def load_dashboard(user_email, username):
         videos = int(stats.get("videoCount", 0))
         latest = row.get("latestVideoDate", "N/A")
 
-        # ✅ Clickable box layout
+        # Clickable box layout
         if channel_url:
             st.markdown(
                 f"""<a href="{channel_url}" target="_blank" style="text-decoration:none;">

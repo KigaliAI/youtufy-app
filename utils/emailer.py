@@ -154,4 +154,3 @@ If you didn't request this, you can ignore this message.
         print("✅ Password reset email sent.")
     except Exception as e:
         print("❌ Failed to send reset email:", e)
-
