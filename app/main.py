@@ -1,3 +1,4 @@
+#app/main.py
 import streamlit as st
 import sys
 import os
@@ -49,3 +50,4 @@ else:
     <a href='https://www.youtufy.com/cookie.html' target='_blank'>Cookies</a>
     </p>
     """, unsafe_allow_html=True)
+

@@ -1,11 +1,19 @@
-[server]
+server]
 headless = true
 port = 8501
-enableCORS = false
+enableCORS = true
+allowed_pages = ["login", "main", "register", "verify_token", "reset_password", "google_login"]
 
 [theme]
 primaryColor = "#FF4B4B"
 backgroundColor = "#FFFFFF"
 secondaryBackgroundColor = "#F0F2F6"
 textColor = "#262730"
+
+[browser]
+serverAddress = "https://youtufy-one.streamlit.app"
+serverPort = 443  # HTTPS requires port 443
+
+[runner]
+magicEnabled = true
 

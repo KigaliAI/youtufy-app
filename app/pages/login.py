@@ -1,3 +1,4 @@
+#app/pages/login.py
 import streamlit as st
 import sqlite3
 import hashlib
@@ -55,7 +56,7 @@ if login_button:
 
             # Ensure session state variables exist before switching pages
             if "user" in st.session_state and "username" in st.session_state:
-                st.switch_page("main")  # No ".py"
+                st.switch_page("main")
             else:
                 st.error("⚠️ Session data missing, please log in again.")
 
@@ -71,3 +72,4 @@ if st.button("🔑 Forgot Password?"):
 st.markdown("### Or login with Google")
 if st.button("🔐 Continue with Google"):
     st.switch_page("google_login")
+
