@@ -35,7 +35,7 @@ def create_user(email: str, username: str, password: str):
     cur.execute("""
         INSERT INTO users (email, username, password, verified)
         VALUES (?, ?, ?, ?)
-    """, (email, username, hashed, 0))  
+    """, (email, username, hashed, 0))  # Default: not verified
 
     conn.commit()
     conn.close()
