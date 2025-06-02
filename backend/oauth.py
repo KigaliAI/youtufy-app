@@ -1,4 +1,3 @@
-# Updated: backend/oauth.py
 import os
 import json
 from google.oauth2.credentials import Credentials
@@ -25,21 +24,31 @@ def get_flow(redirect_uri=REDIRECT_URI):
         try:
             client_config = json.loads(json_string)
             return Flow.from_client_config(client_config, SCOPES, redirect_uri=redirect_uri)
-        except Exception as e:
+        except json.JSONDecodeError:
             st.error("❌ Failed to parse embedded JSON.")
-            raise e
+            raise ValueError("Invalid JSON format in secrets.")
 
     raise ValueError("❌ No valid Google client secret found.")
 
 # Exchange code for credentials
 def get_credentials_from_code(code, redirect_uri=REDIRECT_URI):
-    flow = get_flow(redirect_uri)
-    flow.fetch_token(code=code)
-    return flow.credentials
+    """Fetch credentials using OAuth authorization code."""
+    try:
+        flow = get_flow(redirect_uri)
+        flow.fetch_token(code=code)
+        return flow.credentials
+    except Exception as e:
+        st.error(f"⚠️ Failed to retrieve OAuth credentials: {str(e)}")
+        return None
 
 # Refresh credentials if expired
 def refresh_credentials(json_creds):
-    creds = Credentials.from_authorized_user_info(json.loads(json_creds), SCOPES)
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    return creds
+    """Refresh credentials if access token is expired."""
+    try:
+        creds = Credentials.from_authorized_user_info(json.loads(json_creds), SCOPES)
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        return creds
+    except Exception as e:
+        st.error(f"⚠️ Error refreshing credentials: {str(e)}")
+        return None
