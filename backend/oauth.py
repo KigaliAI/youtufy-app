@@ -40,12 +40,16 @@ def get_credentials_from_code(code, redirect_uri=REDIRECT_URI):
     flow.fetch_token(code=code)
     return flow.credentials
 
-# Refresh credentials if expired
+# Refresh credentials if expired (load from JSON string)
 def refresh_credentials(json_creds):
-    creds = Credentials.from_authorized_user_info(json.loads(json_creds), SCOPES)
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    return creds
+    try:
+        creds = Credentials.from_authorized_user_info(json.loads(json_creds), SCOPES)
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        return creds
+    except Exception as e:
+        print(f"❌ Failed to refresh credentials from session: {e}")
+        return None
 
 # Store user credentials in users/<email>/token.json
 def store_oauth_credentials(creds, user_email):
@@ -59,7 +63,7 @@ def store_oauth_credentials(creds, user_email):
     except Exception as e:
         print(f"❌ Failed to save credentials: {e}")
 
-# Load and optionally refresh existing credentials
+# Load and refresh credentials from file safely
 def get_user_credentials(user_email):
     token_path = os.path.join(USER_DATA_DIR, user_email, "token.json")
     if not os.path.exists(token_path):
@@ -67,7 +71,9 @@ def get_user_credentials(user_email):
         return None
 
     try:
-        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+        with open(token_path, "r") as f:
+            creds_data = json.load(f)
+        creds = Credentials.from_authorized_user_info(creds_data, SCOPES)
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
             store_oauth_credentials(creds, user_email)
@@ -75,3 +81,4 @@ def get_user_credentials(user_email):
     except Exception as e:
         print(f"❌ Failed to load/refresh credentials: {e}")
         return None
+
