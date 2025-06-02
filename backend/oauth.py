@@ -7,13 +7,11 @@ import streamlit as st
 
 # Constants
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
-REDIRECT_URI = st.secrets.get(
-    "OAUTH_REDIRECT_URI",
-    "https://youtufy-one.streamlit.app/app/pages/google_login"
-)
+REDIRECT_URI = st.secrets.get("OAUTH_REDIRECT_URI", "https://youtufy-one.streamlit.app/google_login")
 
 # Load OAuth flow using either file path or embedded JSON
 def get_flow(redirect_uri=REDIRECT_URI):
+    """Creates OAuth flow for authentication."""
     secret_path = st.secrets.get("GOOGLE_CLIENT_SECRET_PATH")
     json_string = st.secrets.get("GOOGLE_CLIENT_SECRET_JSON")
 

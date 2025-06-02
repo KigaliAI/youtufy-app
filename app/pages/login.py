@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import os
 from dotenv import load_dotenv
-from utils.tokens import generate_token  # Ensure this exists in your project
+from utils.tokens import generate_token  # Ensure this exists
 
 # Page Configuration
 st.set_page_config(page_title="Login", layout="centered")
@@ -52,16 +52,22 @@ if login_button:
             st.session_state["user"] = email
             st.session_state["username"] = username
             st.success(f"✅ Welcome back, {username}!")
-            st.switch_page("app/pages/main.py")  # Ensure the correct page exists
+
+            # Ensure session state variables exist before switching pages
+            if "user" in st.session_state and "username" in st.session_state:
+                st.switch_page("main")  # No ".py"
+            else:
+                st.error("⚠️ Session data missing, please log in again.")
+
     else:
         st.error("❌ Invalid email or password.")
 
 # Forgotten Password
 st.markdown("---")
 if st.button("🔑 Forgot Password?"):
-    st.switch_page("app/pages/reset_password.py")
+    st.switch_page("reset_password")
 
 # Google Login
 st.markdown("### Or login with Google")
 if st.button("🔐 Continue with Google"):
-    st.switch_page("app/pages/google_login.py")
+    st.switch_page("google_login")
