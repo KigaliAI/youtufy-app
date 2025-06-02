@@ -1,67 +1,97 @@
 #backend/auth.py
+import os
 import sqlite3
 import hashlib
-import os
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 DB_PATH = os.getenv("USER_DB", "data/YouTufy_users.db")
 
-# Hash password using SHA256
+# ------------------------------------
+# 🔐 Helper: Hash Password
+# ------------------------------------
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Authenticate user by email + password
+# ------------------------------------
+# ✅ Authenticate User (Email + Password)
+# ------------------------------------
 def authenticate_user(email: str, password: str):
     conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT username, password, verified FROM users WHERE email=?", (email,))
-    row = cur.fetchone()
-    conn.close()
+    cursor = conn.cursor()
 
-    if row:
-        db_username, db_password, verified = row
-        if hash_password(password) == db_password:
-            return db_username, verified
+    try:
+        cursor.execute("SELECT username, password, verified FROM users WHERE email = ?", (email,))
+        row = cursor.fetchone()
+        if row:
+            db_username, db_password, verified = row
+            if hash_password(password) == db_password:
+                return db_username, verified
+    finally:
+        conn.close()
+
     return None, False
 
-# Create new user 
-def create_user(email: str, username: str, password: str):
-    hashed = hash_password(password)
+# ------------------------------------
+# 🧪 Check if Email Exists
+# ------------------------------------
+def email_exists(email: str) -> bool:
     conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO users (email, username, password, verified)
-        VALUES (?, ?, ?, ?)
-    """, (email, username, hashed, 0))  # Default: not verified
-
-    conn.commit()
-    conn.close()
-
-# Set user as verified 
-def verify_user(email: str):
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("UPDATE users SET verified = 1 WHERE email = ?", (email,))
-    conn.commit()
-    conn.close()
-
-# Reset password 
-def update_password(email: str, new_password: str):
-    hashed = hash_password(new_password)
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("UPDATE users SET password = ? WHERE email = ?", (hashed, email))
-    conn.commit()
-    conn.close()
-
-# Check if user exists
-def user_exists(email: str) -> bool:
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM users WHERE email=?", (email,))
-    exists = cur.fetchone() is not None
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM users WHERE email = ?", (email,))
+    exists = cursor.fetchone() is not None
     conn.close()
     return exists
+
+# ------------------------------------
+# 📥 Register New User
+# ------------------------------------
+def register_user(email: str, username: str, password: str, token: str):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    hashed_pw = hash_password(password)
+    try:
+        cursor.execute("""
+            INSERT INTO users (email, username, password, token, verified)
+            VALUES (?, ?, ?, ?, 0)
+        """, (email, username, hashed_pw, token))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+# ------------------------------------
+# ✅ Verify User with Token
+# ------------------------------------
+def verify_user_token(token: str) -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT email FROM users WHERE token = ?", (token,))
+    row = cursor.fetchone()
+
+    if row:
+        cursor.execute("UPDATE users SET verified = 1 WHERE token = ?", (token,))
+        conn.commit()
+        conn.close()
+        return True
+
+    conn.close()
+    return False
+
+# ------------------------------------
+# ♻️ Reset Password
+# ------------------------------------
+def reset_password(email: str, new_password: str):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    hashed_pw = hash_password(new_password)
+    cursor.execute("UPDATE users SET password = ? WHERE email = ?", (hashed_pw, email))
+    conn.commit()
+    conn.close()
+
