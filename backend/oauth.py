@@ -5,6 +5,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from google.auth.transport.requests import Request
 import streamlit as st
+from googleapiclient.discovery import build
 
 # Constants
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
@@ -13,7 +14,7 @@ REDIRECT_URI = st.secrets.get("OAUTH_REDIRECT_URI", "https://youtufy-one.streaml
 USER_DATA_DIR = "users"
 os.makedirs(USER_DATA_DIR, exist_ok=True)
 
-# 🚫 Prevent Metadata Service Fetch
+# 🚫 Prevent Metadata Service Fetch Attempts
 os.environ["NO_METADATA_FETCH"] = "true"
 os.environ["GCE_METADATA_HOST"] = "0.0.0.0"
 
@@ -41,12 +42,12 @@ def get_credentials_from_code(code, redirect_uri=REDIRECT_URI):
     flow.fetch_token(code=code)
     creds = flow.credentials
 
-    # ✅ Ensure credentials are stored after retrieval
+    # ✅ Store credentials securely
     store_oauth_credentials(creds, creds.token)
 
     return creds
 
-# **Corrected** Refresh Credentials Function
+# ✅ OAuth Token Refresh
 def refresh_credentials(json_creds):
     creds = Credentials.from_authorized_user_info(json.loads(json_creds), SCOPES)
     if creds.expired and creds.refresh_token:
@@ -82,4 +83,13 @@ def get_user_credentials(user_email):
     except Exception as e:
         print(f"❌ Failed to load/refresh credentials: {e}")
         return None
+
+# ✅ API Calls Use Correct OAuth Credentials Instead of Metadata
+def get_youtube_service(user_email):
+    creds = get_user_credentials(user_email)
+    if not creds:
+        print("⚠️ User authentication required!")
+        return None
+
+    return build("youtube", "v3", credentials=creds, request=Request())
 
