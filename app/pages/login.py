@@ -53,7 +53,8 @@ if login_button:
                 st.session_state["user"] = email
                 st.session_state["username"] = username
                 st.success(f"✅ Welcome back, {username}!")
-                st.switch_page("dashboard")  # 🚀 Ensure correct page navigation
+                st.switch_page("dashboard")  
+                st.query_params["page"] = "main"  
         else:
             st.error("❌ Invalid email or password.")
 
@@ -62,10 +63,10 @@ st.markdown("---")
 
 # 🔑 Forgot Password Button
 if st.button("🔑 Forgot Password?"):
-    st.switch_page("reset_password")  # 🚀 Ensure correct page navigation
+    st.switch_page("reset_password")  
 
 # 🔐 Google OAuth Login
 st.markdown("### Or login with Google")
 if st.button("🔐 Continue with Google"):
-    st.switch_page("google_login")  # 🚀 Ensure correct page navigation
+    st.switch_page("google_login")  
 

@@ -53,6 +53,8 @@ if "code" in st.query_params and not authenticated:
 
         st.success("✅ Login successful. Redirecting to dashboard...")
         st.switch_page("dashboard")
+        st.success("✅ Login successful. Redirecting to main...")
+        st.query_params["page"] = "main"  
 
     except Exception as e:
         st.error("❌ Google OAuth token exchange failed.")

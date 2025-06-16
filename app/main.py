@@ -19,12 +19,11 @@ username = st.session_state.get("username")
 if user_email and username:
     load_dashboard(user_email, username)
 else:
-    # Display Welcome Screen
     st.markdown("<h1 style='font-size:2.5rem; font-weight:bold; color:magenta; text-align: center;'>Welcome to YouTufy</h1>", unsafe_allow_html=True)
     st.markdown("<h2 style='font-size:1.8rem; font-weight:bold; color:magenta; text-align: center;'>Your YouTube Subscriptions System</h2>", unsafe_allow_html=True)
 
-    st.markdown("<p style='font-size:1.1rem; color:magenta;'>YouTufy App helps you to organize and manage all your YouTube subscriptions in one place.</p>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size:1.1rem; color:magenta;'>🔒 Your data is protected · Access granted via Google OAuth ('youtube.readonly' permission)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:1.1rem; color:magenta;'>YouTufy helps organize and manage your YouTube subscriptions in one place.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:1.1rem; color:magenta;'>🔒 Your data is protected · Google OAuth authentication required.</p>", unsafe_allow_html=True)
 
     st.markdown("""
     <p style='font-size:1.1rem; font-weight:bold; color:magenta;'>
@@ -64,12 +63,11 @@ else:
         </a>
         """, unsafe_allow_html=True)
 
-    # Footer Section
     st.markdown("---")
     st.markdown("""
     <p style='text-align: center; font-size:20px;'>
-    © 2025 YouTufy | <a href='https://www.youtufy.com/privacy.html' target='_blank'>Privacy Policy</a> | 
-    <a href='https://www.youtufy.com/terms.html' target='_blank'>Terms of Service</a> | 
+    © 2025 YouTufy | <a href='https://www.youtufy.com/privacy.html' target='_blank'>Privacy Policy</a> |
+    <a href='https://www.youtufy.com/terms.html' target='_blank'>Terms of Service</a> |
     <a href='https://www.youtufy.com/cookie.html' target='_blank'>Cookies</a>
     </p>
     """, unsafe_allow_html=True)
