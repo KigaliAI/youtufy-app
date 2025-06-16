@@ -1,4 +1,4 @@
-#backend/auth.py
+# backend/auth.py
 import sqlite3
 import hashlib
 import os
@@ -8,12 +8,12 @@ from dotenv import load_dotenv
 load_dotenv()
 DB_PATH = os.getenv("USER_DB", "data/YouTufy_users.db")
 
-# Secure password hashing using SHA256
 def hash_password(password: str) -> str:
+    """Securely hash passwords using SHA256."""
     return hashlib.sha256(password.encode()).hexdigest()
 
-# 🚀 Authenticate user by email + password (prevents timing attacks)
 def authenticate_user(email: str, password: str):
+    """Validate user email and password against stored database records."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT username, password, verified FROM users WHERE email=?", (email,))
@@ -26,30 +26,28 @@ def authenticate_user(email: str, password: str):
             return db_username, verified
     return None, False
 
-# ✅ Create new user (auto-hashes password)
 def create_user(email: str, username: str, password: str):
+    """Create a new user with hashed password."""
     hashed = hash_password(password)
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-
     cur.execute("""
         INSERT INTO users (email, username, password, verified)
         VALUES (?, ?, ?, ?)
     """, (email, username, hashed, 0))  # Default: not verified
-
     conn.commit()
     conn.close()
 
-# ✅ Set user as verified
 def verify_user(email: str):
+    """Set user as verified."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("UPDATE users SET verified = 1 WHERE email = ?", (email,))
     conn.commit()
     conn.close()
 
-# ✅ Securely reset password
 def update_password(email: str, new_password: str):
+    """Securely reset user password."""
     hashed = hash_password(new_password)
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -57,12 +55,11 @@ def update_password(email: str, new_password: str):
     conn.commit()
     conn.close()
 
-# ✅ Check if user exists before allowing actions
 def user_exists(email: str) -> bool:
+    """Check if a user exists before allowing actions."""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT 1 FROM users WHERE email=?", (email,))
     exists = cur.fetchone() is not None
     conn.close()
     return exists
-

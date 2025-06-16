@@ -1,25 +1,38 @@
-#backend/oauth.py
 import os
 import json
+import requests
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from google.auth.transport.requests import Request
 import streamlit as st
-from googleapiclient.discovery import build
 
 # Constants
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
-REDIRECT_URI = st.secrets.get("OAUTH_REDIRECT_URI", "https://youtufy-one.streamlit.app/google_login")
+REDIRECT_URI = st.secrets.get(
+    "OAUTH_REDIRECT_URI",
+    "https://youtufy-one.streamlit.app/app/pages/google_login"
+)
 
 USER_DATA_DIR = "users"
 os.makedirs(USER_DATA_DIR, exist_ok=True)
 
-# 🚫 Prevent Metadata Service Fetch Attempts
-os.environ["NO_METADATA_FETCH"] = "true"
-os.environ["GCE_METADATA_HOST"] = "0.0.0.0"
+def is_running_on_gce():
+    """Check if running inside Google Cloud Compute Engine to prevent metadata issues."""
+    try:
+        response = requests.get(
+            "http://169.254.169.254/computeMetadata/v1/instance/",
+            headers={"Metadata-Flavor": "Google"},
+            timeout=2
+        )
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return False  # Not running on GCE
 
-# Load OAuth flow using either file path or embedded JSON
 def get_flow(redirect_uri=REDIRECT_URI):
+    """Creates OAuth flow while ensuring authentication doesn't rely on GCE metadata."""
+    if is_running_on_gce():
+        raise RuntimeError("⚠️ Metadata access attempted outside GCE. Switching to manual authentication.")
+
     secret_path = st.secrets.get("GOOGLE_CLIENT_SECRET_PATH")
     json_string = st.secrets.get("GOOGLE_CLIENT_SECRET_JSON")
 
@@ -36,27 +49,19 @@ def get_flow(redirect_uri=REDIRECT_URI):
 
     raise ValueError("❌ No valid Google client secret found.")
 
-# Exchange code for credentials
 def get_credentials_from_code(code, redirect_uri=REDIRECT_URI):
+    """Exchange authorization code for credentials and prevent reliance on GCE metadata."""
     flow = get_flow(redirect_uri)
     flow.fetch_token(code=code)
+
     creds = flow.credentials
-
-    # ✅ Store credentials securely
-    store_oauth_credentials(creds, creds.token)
-
+    if not creds or creds.invalid:
+        raise RuntimeError("⚠️ OAuth authentication failed. Ensure credentials are properly configured.")
+    
     return creds
 
-# ✅ OAuth Token Refresh
-def refresh_credentials(json_creds):
-    creds = Credentials.from_authorized_user_info(json.loads(json_creds), SCOPES)
-    if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-        store_oauth_credentials(creds, creds.token)
-    return creds
-
-# ✅ Store user credentials securely
 def store_oauth_credentials(creds, user_email):
+    """Securely save OAuth credentials."""
     user_dir = os.path.join(USER_DATA_DIR, user_email)
     os.makedirs(user_dir, exist_ok=True)
     token_path = os.path.join(user_dir, "token.json")
@@ -67,8 +72,8 @@ def store_oauth_credentials(creds, user_email):
     except Exception as e:
         print(f"❌ Failed to save credentials: {e}")
 
-# ✅ Load and refresh credentials when needed
 def get_user_credentials(user_email):
+    """Load stored OAuth credentials, refresh if expired."""
     token_path = os.path.join(USER_DATA_DIR, user_email, "token.json")
     if not os.path.exists(token_path):
         print("⚠️ No token file found.")
@@ -83,13 +88,3 @@ def get_user_credentials(user_email):
     except Exception as e:
         print(f"❌ Failed to load/refresh credentials: {e}")
         return None
-
-# ✅ API Calls Use Correct OAuth Credentials Instead of Metadata
-def get_youtube_service(user_email):
-    creds = get_user_credentials(user_email)
-    if not creds:
-        print("⚠️ User authentication required!")
-        return None
-
-    return build("youtube", "v3", credentials=creds, request=Request())
-
