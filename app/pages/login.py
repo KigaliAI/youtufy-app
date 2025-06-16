@@ -2,11 +2,11 @@
 import streamlit as st
 import sqlite3
 import hashlib
-from utils.tokens import generate_token
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
+from utils.tokens import generate_token
 
-# Load environment variables
+# ✅ Load environment variables
 load_dotenv()
 DB_PATH = os.getenv("USER_DB", "data/YouTufy_users.db")
 
@@ -16,7 +16,7 @@ st.title("🔐 Login to YouTufy")
 
 # 📌 Secure Password Hashing
 def hash_password(password: str) -> str:
-    """Hash passwords securely using SHA256."""
+    """Securely hash passwords using SHA256."""
     return hashlib.sha256(password.encode()).hexdigest()
 
 # 🛠 Authenticate User
@@ -27,7 +27,7 @@ def authenticate_user(email: str, password: str):
     cur.execute("SELECT username, password, verified FROM users WHERE email=?", (email,))
     row = cur.fetchone()
     conn.close()
-    
+
     if row:
         db_username, db_password, verified = row
         if hash_password(password) == db_password:
@@ -49,22 +49,23 @@ if login_button:
             if not verified:
                 st.error("❌ Your account is not yet verified. Please check your email.")
             else:
-                st.session_state.user = email
-                st.session_state.username = username
+                # ✅ Secure session storage
+                st.session_state["user"] = email
+                st.session_state["username"] = username
                 st.success(f"✅ Welcome back, {username}!")
-                st.switch_page("pages/dashboard.py")  # Ensure correct redirection
+                st.switch_page("dashboard")  # 🚀 Ensure correct page navigation
         else:
             st.error("❌ Invalid email or password.")
 
 # 🔄 Password Reset & Google Login
 st.markdown("---")
 
-# Reset Password
+# 🔑 Forgot Password Button
 if st.button("🔑 Forgot Password?"):
-    st.switch_page("pages/reset_password.py")
+    st.switch_page("reset_password")  # 🚀 Ensure correct page navigation
 
-# Google OAuth Login
+# 🔐 Google OAuth Login
 st.markdown("### Or login with Google")
 if st.button("🔐 Continue with Google"):
-    st.switch_page("pages/google_login.py")
+    st.switch_page("google_login")  # 🚀 Ensure correct page navigation
 

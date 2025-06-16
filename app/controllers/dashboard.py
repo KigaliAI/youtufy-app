@@ -1,20 +1,26 @@
-# app/controllers/dashboard.py
+#app/controllers/dashboard.py
 import os
 import sys
 import pandas as pd
 from datetime import datetime
 import streamlit as st
 
+# Ensure proper import paths
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from backend.oauth import get_user_credentials
 from backend.youtube import fetch_subscriptions
 
 def load_dashboard(user_email, username):
-    st.markdown("<h1 style='font-size:1.8rem; font-weight:bold; color:rgb(112, 10, 160);'>YouTufy – Your YouTube Subscriptions System</h1>", unsafe_allow_html=True)
+    """Load and display the YouTube subscriptions dashboard for authenticated users."""
+    st.markdown(
+        "<h1 style='font-size:1.8rem; font-weight:bold; color:rgb(112, 10, 160);'>YouTufy – Your YouTube Subscriptions System</h1>",
+        unsafe_allow_html=True,
+    )
     st.caption("🔒 Your data is protected · Access granted via Google OAuth (`youtube.readonly`)")
     st.success(f"🎉 Welcome back, {username.capitalize()}!")
 
+    # 📡 Fetch user subscriptions
     with st.spinner("📡 Loading your YouTube subscriptions..."):
         try:
             creds = get_user_credentials(user_email)
@@ -23,19 +29,19 @@ def load_dashboard(user_email, username):
             st.error(f"⚠️ Error fetching subscriptions: {str(e)}")
             st.stop()
 
-    if df.empty or 'statistics' not in df.columns or 'snippet' not in df.columns:
+    # 🔄 Validate subscription data
+    if df.empty or not {"statistics", "snippet"}.issubset(df.columns):
         st.warning("⚠️ No valid subscription data found.")
         st.stop()
 
-    numeric_cols = ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.viewCount']
+    # 🔄 Normalize and convert numeric values
+    numeric_cols = ["statistics.subscriberCount", "statistics.videoCount", "statistics.viewCount"]
     for col in numeric_cols:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-        else:
-            df[col] = 0
+        df[col] = pd.to_numeric(df.get(col, pd.Series(0)), errors="coerce").fillna(0)
 
-    df = df[df['snippet'].notna() & df['statistics'].notna()]
+    df = df[df["snippet"].notna() & df["statistics"].notna()]
 
+    # 📊 Display key metrics
     st.metric("Total Channels", len(df))
     st.metric("Total Subscribers", f"{int(df['statistics.subscriberCount'].sum()):,}")
     st.metric("Total Videos", f"{int(df['statistics.videoCount'].sum()):,}")
@@ -43,7 +49,7 @@ def load_dashboard(user_email, username):
 
     st.markdown("---")
 
-    # Render each channel as clickable card
+    # 🔽 Render each channel as clickable card
     for _, row in df.iterrows():
         snippet = row.get("snippet", {})
         stats = row.get("statistics", {})
@@ -53,7 +59,7 @@ def load_dashboard(user_email, username):
         videos = int(stats.get("videoCount", 0))
         latest = row.get("latestVideoDate", "N/A")
 
-        # Clickable box layout
+        # ✅ Clickable box layout
         if channel_url:
             st.markdown(
                 f"""<a href="{channel_url}" target="_blank" style="text-decoration:none;">
@@ -61,7 +67,7 @@ def load_dashboard(user_email, username):
                             <span style="color:white;font-weight:bold;">📺 {title}</span>
                         </div>
                     </a>""",
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
         else:
             st.markdown(f"### {title}")
