@@ -1,8 +1,10 @@
 streamlit
+streamlit-extras
 pandas
 google-auth
 google-auth-oauthlib
 google-auth-httplib2
+google-auth-token-manager
 google-api-python-client
 requests
 python-dotenv
