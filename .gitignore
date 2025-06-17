@@ -3,6 +3,8 @@
 *.env
 config/client_secret.json
 .streamlit/secrets.toml
+client_secret.json
+secrets.toml
 
 # 🧠 User session + DB
 data/*.db
@@ -39,5 +41,3 @@ ehthumbs.db
 
 # 🧰 VS Code settings (optional)
 .vscode/
-client_secret.json
-secrets.toml
