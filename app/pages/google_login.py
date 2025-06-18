@@ -7,6 +7,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend")))
+print("🔍 Secrets in Google Login:", st.secrets)
 from backend.oauth import (
     get_credentials_from_code,
     get_flow, get_auth_flow, 
