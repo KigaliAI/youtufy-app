@@ -36,3 +36,7 @@ YouTufy only requests the youtube.readonly scope and never modifies or uploads a
 👨‍💻 Developer
 Built and maintained by Kigali Center of AI
 📫 Email: info@youtufy.com
+
+# YouTufy App
+
+<!-- Trigger redeploy -->
