@@ -1,160 +1,68 @@
-#utils/emailer.py
-import sys
-import os
+# utils/emailer.py
+
 import smtplib
+from email.message import EmailMessage
 import streamlit as st
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from dotenv import load_dotenv
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+def send_email(to_email: str, subject: str, body: str):
+    """
+    Send a plain-text email via SMTP using credentials stored in Streamlit secrets.
+    """
+    smtp_user = st.secrets["DEFAULT_EMAIL"]
+    smtp_pass = st.secrets["EMAIL_PASSWORD"]
 
-load_dotenv()
-
-SENDER_EMAIL = st.secrets["DEFAULT_EMAIL"]
-SENDER_PASSWORD = st.secrets["EMAIL_PASSWORD"]
-
-
-def send_registration_email(email, username, token):
-    print("📬 Preparing registration email...")
-
-    verification_link = f"https://youtufy-one.streamlit.app/pages/verify_token.py?token={token}"
-    print(f"📧 Sending to: {email}")
-    print(f"🔗 Link: {verification_link}")
-
-    message = MIMEMultipart("alternative")
-    message["Subject"] = f"✅ Welcome to YouTufy, {username}! Verify your account"
-    message["From"] = SENDER_EMAIL
-    message["To"] = email
-
-    text = f"""
-Hi {username},
-
-Thanks for signing up for YouTufy – your YouTube Subscriptions Dashboard.
-
-Please verify your email address by clicking this link:
-{verification_link}
-
-If the link doesn't work, copy and paste it into your browser.
-
-Thanks,  
-The YouTufy Team
-"""
-    html = f"""
-<html>
-  <body style="font-family: Arial, sans-serif; line-height: 1.6;">
-    <h2>👋 Welcome to <span style="color:#8F00FF;">YouTufy</span>, {username}!</h2>
-    <p>You're almost done – please verify your email to activate your dashboard.</p>
-    <p style="text-align: center; margin: 30px 0;">
-      <a href="{verification_link}" target="_blank" style="
-          background-color: #8F00FF;
-          color: white;
-          padding: 14px 24px;
-          border-radius: 6px;
-          text-decoration: none;
-          font-weight: bold;
-          display: inline-block;
-        ">✅ Verify My Account</a>
-    </p>
-    <p>If the button doesn't work, copy and paste this URL in your browser:</p>
-    <p><a href="{verification_link}">{verification_link}</a></p>
-    <br>
-    <p style="font-size: 14px; color: #888;">– The YouTufy Team</p>
-  </body>
-</html>
-"""
-    message.attach(MIMEText(text, "plain"))
-    message.attach(MIMEText(html, "html"))
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = smtp_user
+    msg["To"] = to_email
+    msg.set_content(body)
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, email, message.as_string())
-        print("✅ Email sent successfully.")
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(smtp_user, smtp_pass)
+            smtp.send_message(msg)
+            print(f"✅ Email sent to {to_email}")
     except Exception as e:
-        print(f"❌ Failed to send email: {e}")
+        print(f"❌ Failed to send email to {to_email}: {e}")
 
+def send_registration_email(email: str, token: str):
+    """
+    Email the user a registration confirmation link with embedded token.
+    """
+    link = f"https://youtufy-one.streamlit.app/pages/verify_token.py?token={token}"
+    subject = "Confirm Your YouTufy Registration"
+    body = f"""
+    Welcome to YouTufy 🎉
 
-def send_verification_email(to_email, auth_url):
-    print(f"📬 Sending OAuth verification email to: {to_email}")
+    Please verify your email address to activate your account:
 
-    message = MIMEMultipart("alternative")
-    message["Subject"] = "✅ Welcome to YouTufy – Verify Your Access"
-    message["From"] = SENDER_EMAIL
-    message["To"] = to_email
+    {link}
 
-    text = f"""
-Hi there 👋,
+    If you didn't register, you can ignore this message.
 
-You're one step away from unlocking your personal dashboard of YouTube subscriptions.
+    – The YouTufy Team
+    """
+    send_email(email, subject, body)
 
-Click this link to authorize:
-{auth_url}
+def send_password_reset_email(email: str, token: str):
+    """
+    Send password reset instructions with tokenized link.
+    """
+    link = f"https://youtufy-one.streamlit.app/pages/update_password.py?token={token}"
+    subject = "Reset Your YouTufy Password"
+    body = f"""
+    Hello,
 
-Thanks,  
-The YouTufy Team
-"""
-    html = f"""
-<html>
-  <body style="font-family: Arial, sans-serif;">
-    <h3>👋 Welcome to YouTufy!</h3>
-    <p>You're one step away from unlocking your personal dashboard of YouTube subscriptions.</p>
-    <p><a href="{auth_url}" style="padding: 10px 16px; background: #28a745; color: white; text-decoration: none; border-radius: 6px;">✅ Authorize YouTufy</a></p>
-    <p>If the button doesn't work, click this link:<br><a href="{auth_url}">{auth_url}</a></p>
-    <p style="font-size: 14px; color: #888;">– The YouTufy Team</p>
-  </body>
-</html>
-"""
-    message.attach(MIMEText(text, "plain"))
-    message.attach(MIMEText(html, "html"))
+    A password reset was requested for your YouTufy account.
 
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, to_email, message.as_string())
-        print("✅ OAuth verification email sent.")
-    except Exception as e:
-        print(f"❌ Failed to send OAuth email: {e}")
+    Please click the link below to reset your password:
 
+    {link}
 
-def send_password_reset_email(email, token):
-    reset_url = f"https://youtufy-one.streamlit.app/pages/reset_password.py?token={token}"
+    This link will expire in 1 hour.
 
-    message = MIMEMultipart("alternative")
-    message["Subject"] = "🔑 Reset your YouTufy password"
-    message["From"] = SENDER_EMAIL
-    message["To"] = email
+    If you didn't request a reset, you can ignore this email.
 
-    text = f"""
-Hi,
-
-We received a request to reset your YouTufy password.
-
-Reset here:
-{reset_url}
-
-If you didn't request this, you can ignore this message.
-
-– The YouTufy Team
-"""
-    html = f"""
-<html>
-  <body style="font-family: Arial, sans-serif;">
-    <h3>Reset your password – YouTufy</h3>
-    <p>We received a request to reset your password.</p>
-    <p><a href="{reset_url}" target="_blank" style="padding: 10px 18px; background-color: #8F00FF; color: white; text-decoration: none; border-radius: 6px;">🔐 Reset Password</a></p>
-    <p>If that doesn't work, click or paste this link:<br><a href="{reset_url}">{reset_url}</a></p>
-    <p style="font-size: 14px; color: #888;">– The YouTufy Team</p>
-  </body>
-</html>
-"""
-    message.attach(MIMEText(text, "plain"))
-    message.attach(MIMEText(html, "html"))
-
-    try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, email, message.as_string())
-        print("✅ Password reset email sent.")
-    except Exception as e:
-        print("❌ Failed to send reset email:", e)
+    – The YouTufy Team
+    """
+    send_email(email, subject, body)

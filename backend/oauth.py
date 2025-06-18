@@ -1,4 +1,5 @@
-#backend/oauth.py
+# backend/oauth.py
+
 import streamlit as st
 import json
 from pathlib import Path
@@ -6,16 +7,17 @@ from google_auth_oauthlib.flow import Flow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 
-# Constants
+# ✅ Constants
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
 CREDENTIALS_DIR = Path("users")
+CREDENTIALS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Load Google OAuth client config from secrets.toml (Streamlit Cloud UI)
+# ✅ Load client configuration from Streamlit secrets
 CLIENT_CONFIG = json.loads(st.secrets["GOOGLE_CLIENT_SECRET"])
 
 def get_flow(redirect_uri: str) -> Flow:
     """
-    Create a Google OAuth flow using Streamlit secrets and specified redirect URI.
+    Return an OAuth Flow using client config from Streamlit secrets.
     """
     return Flow.from_client_config(
         CLIENT_CONFIG,
@@ -25,14 +27,14 @@ def get_flow(redirect_uri: str) -> Flow:
 
 def get_auth_flow(user_email: str) -> Flow:
     """
-    Return Flow configured with redirect URI for OAuth callback.
+    Create OAuth Flow for a specific user with redirect URI for callback.
     """
-    redirect_uri = f"https://youtufy-one.streamlit.app/pages/oauth_callback.py?email={user_email}"
+    redirect_uri = f"https://youtufy-one.streamlit.app/main?email={user_email}"
     return get_flow(redirect_uri)
 
 def get_credentials_from_code(code: str, redirect_uri: str) -> Credentials:
     """
-    Exchange the authorization code for credentials.
+    Exchange authorization code for user credentials.
     """
     flow = get_flow(redirect_uri)
     flow.fetch_token(code=code)
@@ -40,23 +42,22 @@ def get_credentials_from_code(code: str, redirect_uri: str) -> Credentials:
 
 def save_user_credentials(user_email: str, credentials: Credentials):
     """
-    Save credentials to a JSON file associated with the user.
+    Save credentials securely to disk using email as identifier.
     """
-    CREDENTIALS_DIR.mkdir(parents=True, exist_ok=True)
-    cred_path = CREDENTIALS_DIR / f"{user_email}_creds.json"
-    with open(cred_path, "w") as f:
+    path = CREDENTIALS_DIR / f"{user_email}_creds.json"
+    with open(path, "w") as f:
         f.write(credentials.to_json())
 
 def get_user_credentials(user_email: str) -> Credentials | None:
     """
-    Load user credentials and refresh them if expired.
+    Load saved credentials for a user; refresh if expired.
     """
-    cred_path = CREDENTIALS_DIR / f"{user_email}_creds.json"
-    if not cred_path.exists():
+    path = CREDENTIALS_DIR / f"{user_email}_creds.json"
+    if not path.exists():
         return None
 
     try:
-        creds = Credentials.from_authorized_user_file(str(cred_path), SCOPES)
+        creds = Credentials.from_authorized_user_file(str(path), SCOPES)
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
             save_user_credentials(user_email, creds)
@@ -67,7 +68,7 @@ def get_user_credentials(user_email: str) -> Credentials | None:
 
 def refresh_credentials(cred_json: str) -> Credentials:
     """
-    Refresh credentials from session-stored JSON.
+    Refresh credentials from session JSON (already authorized).
     """
     try:
         creds = Credentials.from_authorized_user_info(json.loads(cred_json), SCOPES)
@@ -75,14 +76,13 @@ def refresh_credentials(cred_json: str) -> Credentials:
             creds.refresh(Request())
         return creds
     except Exception as e:
-        print("❌ Failed to refresh credentials:", e)
+        print("❌ Error refreshing credentials:", e)
         return None
 
 def revoke_user_credentials(user_email: str):
     """
-    Delete a user's saved credentials.
+    Delete a user's saved credentials (logout or revoke).
     """
-    cred_path = CREDENTIALS_DIR / f"{user_email}_creds.json"
-    if cred_path.exists():
-        cred_path.unlink()
-
+    path = CREDENTIALS_DIR / f"{user_email}_creds.json"
+    if path.exists():
+        path.unlink()
