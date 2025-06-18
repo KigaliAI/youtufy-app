@@ -8,7 +8,7 @@ from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from backend.oauth import get_flow, get_credentials_from_code, refresh_credentials
+from backend.oauth import get_flow, get_credentials_from_code, refresh_credentials, get_auth_flow
 from backend.auth import store_oauth_credentials
 from backend.youtube import fetch_subscriptions
 from app.components.channel_card import channel_card

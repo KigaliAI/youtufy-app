@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../b
 print("🔍 Secrets in Google Login:", st.secrets)
 from backend.oauth import (
     get_credentials_from_code,
-    get_flow, get_auth_flow, 
+    get_flow, get_auth_flow,
     refresh_credentials,
     store_oauth_credentials
 )
