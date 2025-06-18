@@ -1,4 +1,7 @@
 # app/pages/google_login.py
+import backend.oauth
+print("🔍 Available functions:", dir(backend.oauth))
+
 import os
 import sys
 import streamlit as st
