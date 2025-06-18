@@ -1,10 +1,12 @@
 # backend/youtube.py
-
+import sys
 import os
 import json
 import pandas as pd
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # 🔐 Optional fallback API key
 API_KEY = os.getenv("YOUTUBE_API_KEY")

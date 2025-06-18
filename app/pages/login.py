@@ -1,11 +1,13 @@
 # app/pages/login.py
-
+import sys
 import streamlit as st
 import sqlite3
 import hashlib
 import os
 from dotenv import load_dotenv
 from utils.tokens import generate_token
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Load environment variables
 load_dotenv()
@@ -53,7 +55,7 @@ if login_button:
                 st.session_state["user"] = email
                 st.session_state["username"] = username
                 st.success(f"✅ Welcome back, {username}!")
-                st.switch_page("main")
+                st.switch_page("pages/dashboard.py")
         else:
             st.error("❌ Invalid email or password.")
 

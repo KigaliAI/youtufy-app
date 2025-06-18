@@ -1,10 +1,16 @@
 #backend/oauth.py
 import streamlit as st
+import sys
 import json
+import pandas as pd
+from datetime import datetime
+from dotenv import load_dotenv
 from pathlib import Path
 from google_auth_oauthlib.flow import Flow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Constants
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]

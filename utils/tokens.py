@@ -1,10 +1,13 @@
 #utils/tokens.py
+import sys
 import hashlib
 import secrets
 import time
 import os
 from dotenv import load_dotenv
 import streamlit as st
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 load_dotenv()
 

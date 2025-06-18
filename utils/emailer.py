@@ -1,10 +1,13 @@
 #utils/emailer.py
+import sys
 import os
 import smtplib
 import streamlit as st
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 load_dotenv()
 

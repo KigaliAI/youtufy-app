@@ -1,10 +1,12 @@
 # app/pages/dashboard.py
-
+import sys
 import os
 import json
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from backend.oauth import get_flow, get_credentials_from_code, refresh_credentials
 from backend.auth import store_oauth_credentials

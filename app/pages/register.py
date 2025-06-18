@@ -1,8 +1,11 @@
 # app/pages/register.py
+import sys
 import os
 import sqlite3
 import streamlit as st
 from dotenv import load_dotenv
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from utils.tokens import generate_token
 from utils.emailer import send_registration_email

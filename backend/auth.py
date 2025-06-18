@@ -1,9 +1,11 @@
 # backend/auth.py
-
+import sys
 import sqlite3
 import hashlib
 import os
 from dotenv import load_dotenv
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # ✅ Load environment variables
 load_dotenv()
