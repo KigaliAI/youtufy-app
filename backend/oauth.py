@@ -21,7 +21,7 @@ def get_flow(redirect_uri: str) -> Flow:
     return Flow.from_client_config(
         CLIENT_CONFIG,
         scopes=SCOPES,
-        redirect_uri=redirect_uri,
+        redirect_uri=redirect_uri
     )
 
 def get_auth_flow(user_email: str) -> Flow:

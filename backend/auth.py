@@ -1,4 +1,5 @@
 # backend/auth.py
+import streamlit as st
 import sys
 import sqlite3
 import hashlib
