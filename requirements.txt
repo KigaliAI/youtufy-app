@@ -1,11 +1,21 @@
+# Core dependencies
 streamlit==1.35.0
 pandas==2.2.2
-google-auth==2.29.0
-google-auth-oauthlib==1.2.0
-google-api-python-client==2.126.0
 requests==2.32.2
 protobuf==4.25.3
+
+# Streamlit Extras & Utility Libraries
 streamlit-extras==0.3.4
 python-dotenv
 email-validator
 watchdog
+
+# Google OAuth & Authentication
+google-auth==2.29.0
+google-auth-oauthlib==1.2.0
+google-auth-httplib2
+google-api-python-client==2.126.0
+
+# Additional libraries for Streamlit OAuth flow
+oauthlib
+requests-oauthlib
