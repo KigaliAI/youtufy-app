@@ -28,6 +28,18 @@ def get_auth_flow(user_email: str) -> Flow:
     )
     return flow
 
+def get_credentials_from_code(code: str, redirect_uri: str):
+    """
+    Exchange the authorization code for OAuth 2.0 credentials.
+    """
+    flow = Flow.from_client_config(
+        CLIENT_CONFIG,
+        scopes=SCOPES,
+        redirect_uri=redirect_uri,
+    )
+    flow.fetch_token(code=code)
+    return flow.credentials
+
 def save_user_credentials(user_email: str, credentials: Credentials):
     """
     Save the user's credentials to a secure JSON file.
