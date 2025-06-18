@@ -1,5 +1,4 @@
-# .streamlit/config.toml
-
+#.streamlit/config.toml
 [server]
 headless = true
 enableCORS = false
@@ -13,3 +12,4 @@ backgroundColor = "#ffffff"
 secondaryBackgroundColor = "#f0f0f5"
 textColor = "#262730"
 font = "sans serif"
+

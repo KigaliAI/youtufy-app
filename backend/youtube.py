@@ -1,21 +1,31 @@
-#backend/youtube.py
-import json
+# backend/youtube.py
+
 import os
+import json
 import pandas as pd
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-API_KEY = os.getenv("YOUTUBE_API_KEY")  # Fallback for public access
+# 🔐 Optional fallback API key
+API_KEY = os.getenv("YOUTUBE_API_KEY")
 
 def fetch_subscriptions(creds, user_email):
-    """Fetch YouTube subscriptions, switching to API key if OAuth fails."""
-    if creds:
-        youtube = build('youtube', 'v3', credentials=creds)
-    else:
-        print("⚠️ OAuth credentials unavailable, switching to API key authentication.")
-        youtube = build('youtube', 'v3', developerKey=API_KEY)
+    """Fetch a user's YouTube subscriptions and channel metadata."""
+    # ✅ Build YouTube client
+    try:
+        if creds:
+            youtube = build("youtube", "v3", credentials=creds)
+        elif API_KEY:
+            print("⚠️ OAuth creds missing – using API key.")
+            youtube = build("youtube", "v3", developerKey=API_KEY)
+        else:
+            print("❌ No valid credentials or API key found.")
+            return pd.DataFrame()
+    except Exception as e:
+        print(f"❌ Failed to initialize YouTube client: {e}")
+        return pd.DataFrame()
 
-    # Step 1: Fetch all subscriptions
+    # 📦 Step 1: Fetch all subscriptions
     subscriptions = []
     next_page_token = None
     try:
@@ -32,18 +42,19 @@ def fetch_subscriptions(creds, user_email):
             if not next_page_token:
                 break
     except HttpError as e:
-        print("❌ YouTube API Error during subscriptions fetch:", e)
+        print("❌ YouTube API error while fetching subscriptions:", e)
         return pd.DataFrame()
 
-    # Step 2: Extract channel IDs
+    # 🧮 Step 2: Extract valid channel IDs
     channel_ids = [
-        item.get("snippet", {}).get("resourceId", {}).get("channelId") for item in subscriptions
+        item.get("snippet", {}).get("resourceId", {}).get("channelId")
+        for item in subscriptions
+        if item.get("snippet", {}).get("resourceId", {}).get("channelId")
     ]
-    channel_ids = [id for id in channel_ids if id]
 
-    # Step 3: Fetch channel metadata
+    # 📊 Step 3: Fetch metadata for each channel
     channel_data = []
-    for i in range(0, len(channel_ids), 50):  # YouTube API max: 50 per call
+    for i in range(0, len(channel_ids), 50):  # Max 50 per API call
         try:
             req = youtube.channels().list(
                 part="snippet,contentDetails,statistics",
@@ -51,7 +62,7 @@ def fetch_subscriptions(creds, user_email):
             )
             res = req.execute()
         except HttpError as e:
-            print(f"❌ Error fetching channel batch {i}–{i+50}:", e)
+            print(f"❌ Error fetching metadata for batch {i}-{i+50}: {e}")
             continue
 
         for item in res.get("items", []):
@@ -59,12 +70,13 @@ def fetch_subscriptions(creds, user_email):
             stats = item.get("statistics", {})
             content_details = item.get("contentDetails", {})
 
+            # Defaults
             snippet.setdefault("title", "❓ Unknown Title")
             stats.setdefault("subscriberCount", 0)
             stats.setdefault("videoCount", 0)
             stats.setdefault("viewCount", 0)
 
-            # 🔹 Step 4: Fetch latest video date
+            # 📅 Step 4: Fetch latest video date (if available)
             latest_date = None
             try:
                 uploads_playlist = content_details.get("relatedPlaylists", {}).get("uploads")
@@ -80,23 +92,24 @@ def fetch_subscriptions(creds, user_email):
             except Exception:
                 latest_date = None
 
-            # Step 5: Add channel ID and URL
+            # ✅ Format final channel data
             channel_id = item.get("id")
             if not channel_id:
                 continue
 
-            item["channelUrl"] = f"https://www.youtube.com/channel/{channel_id}"
-            item["latestVideoDate"] = latest_date
-            item["snippet"] = snippet
-            item["statistics"] = stats
-            channel_data.append(item)
+            channel_data.append({
+                "id": channel_id,
+                "channelUrl": f"https://www.youtube.com/channel/{channel_id}",
+                "latestVideoDate": latest_date,
+                "snippet": snippet,
+                "statistics": stats
+            })
 
-    # Step 6: Backup user data
-    user_dir = f'users/{user_email}'
+    # 💾 Step 5: Save raw JSON backup
+    user_dir = f"users/{user_email}"
     os.makedirs(user_dir, exist_ok=True)
     with open(f"{user_dir}/youtube_subscriptions.json", "w", encoding="utf-8") as f:
         json.dump(channel_data, f, indent=2, ensure_ascii=False)
 
-    # Step 7: Return DataFrame
+    # 📈 Step 6: Return as DataFrame
     return pd.DataFrame(channel_data)
-

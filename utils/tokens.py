@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SALT = os.getenv("TOKEN_SALT", "YouTufyDefaultSalt")
-EXPIRATION_SECONDS = int(os.getenv("TOKEN_EXPIRATION", 3600))  # Default: 1 hour
+SALT = st.secrets.get("TOKEN_SALT", "YouTufyDefaultSalt")
+EXPIRATION_SECONDS = int(st.secrets.get("TOKEN_EXPIRATION", 3600))  # Default: 1 hour
 
 
 def generate_token(email: str) -> str:

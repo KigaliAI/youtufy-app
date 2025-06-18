@@ -1,21 +1,24 @@
-#app/pages/admin.py
+# app/pages/admin.py
 import os
+import sys
 import sqlite3
 from datetime import datetime, timedelta
 
 import streamlit as st
 
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+# Setup import paths for utils
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from utils.tokens import generate_token
 from utils.emailer import send_registration_email
 
+# 🔧 Page config
 st.set_page_config(page_title="Admin – Invite Users", layout="centered")
 st.title("🛠️ Admin Panel – Invite Users")
 
-DB_PATH = st.secrets.get("USER_DB_PATH", "data/YouTufy_users.db")
+# 📁 Database path from secrets or default
+DB_PATH = st.secrets["USER_DB"]
 
-# Email input form
+# 💌 Invitation Form
 st.markdown("Invite users by email. They will receive a verification link to activate their account.")
 
 with st.form("invite_user_form"):
@@ -25,13 +28,14 @@ with st.form("invite_user_form"):
 
 if submit:
     if not email:
-        st.warning("Please enter an email.")
+        st.warning("⚠️ Please enter a valid email.")
     else:
         try:
-            
+            # 🔐 Generate token and expiration
             token = generate_token(email)
             expiry = datetime.now() + timedelta(hours=1)
 
+            # 💾 Upsert user into database
             conn = sqlite3.connect(DB_PATH)
             cur = conn.cursor()
             cur.execute("""
@@ -44,13 +48,14 @@ if submit:
                     verified = 0
             """, (
                 email,
-                username if username else email.split("@")[0],
+                username or email.split("@")[0],
                 token,
                 expiry.strftime('%Y-%m-%d %H:%M:%S')
             ))
             conn.commit()
             conn.close()
 
+            # 📬 Send email
             send_registration_email(email, username, token)
             st.success(f"✅ Verification email sent to {email}")
 

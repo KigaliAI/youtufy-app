@@ -1,4 +1,5 @@
-#app/pages/google_login.py
+# app/pages/google_login.py
+
 import os
 import streamlit as st
 import pandas as pd
@@ -6,11 +7,10 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 from backend.oauth import (
-    get_user_credentials,
-    store_oauth_credentials,
-    get_flow,
     get_credentials_from_code,
-    refresh_credentials
+    get_flow,
+    refresh_credentials,
+    store_oauth_credentials
 )
 from backend.youtube import fetch_subscriptions
 from app.components import channel_card
@@ -19,91 +19,89 @@ from app.components import channel_card
 load_dotenv()
 REDIRECT_URI = os.getenv("OAUTH_REDIRECT_URI", "https://youtufy-one.streamlit.app/google_login")
 
-# ✅ Configure Page
+# ✅ Configure Streamlit page
 st.set_page_config(page_title="YouTufy – Dashboard", layout="wide")
 st.title("🌍 Sign in with Google")
 
-# 🔐 Session State Variables
-user_email = st.session_state.get("user", None)
-username = st.session_state.get("username", None)
-google_creds_json = st.session_state.get("google_creds", None)
+# ✅ Session state
+user_email = st.session_state.get("user")
+username = st.session_state.get("username")
 authenticated = st.session_state.get("authenticated", False)
-creds = None
+google_creds_json = st.session_state.get("google_creds")
 
-# 🔄 Handle Google OAuth Callback (?code=...)
+# 🔄 Handle Google OAuth callback with code
 if "code" in st.query_params and not authenticated:
-    st.info("🔁 Exchanging authorization code for tokens...")
+    st.info("🔁 Exchanging code for tokens...")
     try:
         code = st.query_params["code"]
         creds = get_credentials_from_code(code, REDIRECT_URI)
 
-        user_email = creds.id_token.get("email", None)
+        user_email = creds.id_token.get("email")
         if not user_email:
             st.error("❌ Google login failed: No email found.")
             st.stop()
 
-        # ✅ Save session credentials
+        # ✅ Save session state
         st.session_state["user"] = user_email
         st.session_state["username"] = user_email.split("@")[0]
         st.session_state["google_creds"] = creds.to_json()
         st.session_state["authenticated"] = True
 
-        # ✅ Store credentials securely
+        # ✅ Store credentials on disk (if needed)
         store_oauth_credentials(creds, user_email)
 
-        st.success("✅ Login successful. Redirecting to dashboard...")
-        st.switch_page("dashboard")
-        st.success("✅ Login successful. Redirecting to main...")
-        st.query_params["page"] = "main"  
+        st.success("✅ Login successful! Redirecting...")
+        st.rerun()
 
     except Exception as e:
-        st.error("❌ Google OAuth token exchange failed.")
+        st.error("❌ Google OAuth failed.")
         st.exception(e)
         st.stop()
 
-# 🔑 Not authenticated → Show Google Login Prompt
+# 🚪 Not authenticated → show Google login button
 if not authenticated:
     flow = get_flow(REDIRECT_URI)
     auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline")
 
     st.markdown(f"""
-        <p style="text-align:center; margin-top: 20px;">
+        <div style="text-align: center; margin-top: 30px;">
             <a href="{auth_url}" style="
-                padding: 14px 24px;
                 background-color: #8F00FF;
                 color: white;
+                padding: 16px 28px;
+                border-radius: 8px;
                 text-decoration: none;
-                border-radius: 6px;
-                font-weight: bold;">
+                font-weight: bold;
+                font-size: 1.2rem;">
                 🔐 Sign in with Google
             </a>
-        </p>
+        </div>
     """, unsafe_allow_html=True)
     st.stop()
 
-# ✅ Authenticated User – Load Dashboard
+# ✅ Authenticated – fetch subscriptions and show dashboard
 st.markdown("<h1 style='font-size:1.8rem; font-weight:bold; color:magenta;'>YouTufy – Your YouTube Subscriptions Dashboard</h1>", unsafe_allow_html=True)
 st.caption("🔒 Google OAuth Verified · Your data is protected")
-st.success(f"🎉 Welcome back, {st.session_state.username.capitalize()}!")
+st.success(f"🎉 Welcome back, {username.capitalize()}!")
 
-# 🔄 Refresh Credentials If Expired
-creds = refresh_credentials(st.session_state.get("google_creds"))
+# 🔄 Refresh credentials if needed
+creds = refresh_credentials(google_creds_json)
 st.session_state["google_creds"] = creds.to_json()
 
-# 📡 Fetch YouTube Subscriptions
+# 📡 Fetch subscriptions
 with st.spinner("📡 Loading your YouTube subscriptions..."):
     df = fetch_subscriptions(creds, user_email)
 
-# ✅ Validate Subscription Data
+# ✅ Validate response
 if df.empty or 'statistics' not in df.columns or 'snippet' not in df.columns:
     st.warning("⚠️ No subscriptions found.")
     st.stop()
 
-# 🔄 Normalize Numerical Values
+# 🔧 Normalize numeric values
 for col in ['statistics.subscriberCount', 'statistics.videoCount', 'statistics.viewCount']:
     df[col] = pd.to_numeric(df.get(col, pd.Series(0)), errors='coerce')
 
-# 📊 Display Key Subscription Metrics
+# 📈 Summary metrics
 st.metric("Total Channels", len(df))
 st.metric("Total Subscribers", f"{int(df['statistics.subscriberCount'].sum()):,}")
 st.metric("Total Videos", f"{int(df['statistics.videoCount'].sum()):,}")
@@ -111,8 +109,7 @@ st.caption(f"📅 Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 st.markdown("---")
 
-# 🖥️ Render YouTube Subscription Cards
+# 🧾 Show channel cards
 for _, row in df.iterrows():
     if isinstance(row.get("snippet"), dict):
         channel_card(row)
-

@@ -1,28 +1,45 @@
 # app/pages/reset_password.py
-import streamlit as st
-import sqlite3
 import os
+import sqlite3
+import streamlit as st
 from dotenv import load_dotenv
+
 from utils.tokens import generate_token
 from utils.emailer import send_password_reset_email
 
-st.set_page_config(page_title="Reset Password", layout="centered")
-st.title("🔑 Reset Your YouTufy Password")
-
+# 🔧 Environment Setup
 load_dotenv()
-DB_PATH = os.getenv("USER_DB", "data/YouTufy_users.db")
+DB_PATH = st.secrets["USER_DB"]
 
+# 🎨 Page Setup
+st.set_page_config(page_title="Reset Password – YouTufy", layout="centered")
+st.title("🔑 Reset Your YouTufy Password")
+st.markdown("Enter your registered email to receive a password reset link.")
+
+# 🔁 Check if user exists
+def user_exists(email: str) -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM users WHERE email = ?", (email,))
+    found = cur.fetchone() is not None
+    conn.close()
+    return found
+
+# 📩 Password Reset Form
 with st.form("reset_form"):
-    email = st.text_input("Enter your registered email")
+    email = st.text_input("📧 Registered Email")
     submitted = st.form_submit_button("Send Reset Link")
 
 if submitted:
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT email FROM users WHERE email=?", (email,))
-    if cur.fetchone():
-        token = generate_token(email)
-        send_password_reset_email(email, token)
-        st.success("✅ Reset link sent! Please check your email.")
-    else:
+    if not email:
+        st.error("❗ Email is required.")
+    elif not user_exists(email):
         st.warning("⚠️ No account found with that email.")
+    else:
+        try:
+            token = generate_token(email)
+            send_password_reset_email(email, token)
+            st.success("✅ Reset link sent! Please check your email.")
+        except Exception as e:
+            st.error("❌ Failed to send reset email.")
+            st.exception(e)

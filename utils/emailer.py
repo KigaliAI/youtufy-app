@@ -1,14 +1,15 @@
 #utils/emailer.py
 import os
 import smtplib
+import streamlit as st
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SENDER_EMAIL = os.getenv("DEFAULT_EMAIL")
-SENDER_PASSWORD = os.getenv("EMAIL_PASSWORD")
+SENDER_EMAIL = st.secrets["DEFAULT_EMAIL"]
+SENDER_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
 
 def send_registration_email(email, username, token):
