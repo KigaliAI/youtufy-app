@@ -6,24 +6,16 @@ import sqlite3
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# ✅ Load environment variables
 load_dotenv()
 
-# ✅ Get DB path from Streamlit secrets or fallback
 DB_PATH = st.secrets.get("USER_DB", "data/YouTufy_users.db")
 
-
-# 🔐 Hash Password
 def hash_password(password: str) -> str:
     return generate_password_hash(password)
 
-
-# 🔐 Check Password
 def check_password(hashed_password: str, password: str) -> bool:
     return check_password_hash(hashed_password, password)
 
-
-# ✅ Validate login
 def validate_user(email: str, password: str) -> bool:
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -39,8 +31,6 @@ def validate_user(email: str, password: str) -> bool:
 
     return False
 
-
-# 🔎 Get full user data (optional)
 def get_user_by_email(email: str):
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -53,8 +43,6 @@ def get_user_by_email(email: str):
         print(f"❌ Error fetching user: {e}")
         return None
 
-
-# ✅ Store credentials securely (for Google login)
 def store_oauth_credentials(creds, user_email: str):
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -67,3 +55,12 @@ def store_oauth_credentials(creds, user_email: str):
         conn.close()
     except Exception as e:
         print(f"❌ Failed to store OAuth credentials: {e}")
+
+def get_email_from_token(token: str) -> str | None:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT email FROM users WHERE token = ?", (token,))
+    row = cur.fetchone()
+    conn.close()
+    return row[0] if row else None
+

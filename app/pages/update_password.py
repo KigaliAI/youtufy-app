@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 import streamlit as st
 from utils.tokens import verify_token, decode_token
-from backend.auth import update_user_password
+from backend.auth import update_user_password, get_email_from_token
 import time
 
 st.set_page_config(page_title="Reset Password", layout="centered")
@@ -31,7 +31,7 @@ with st.form("reset_password_form"):
             st.error("❌ The reset link is invalid or expired.")
             st.stop()
 
-        email = decode_token(token)
+        email = get_email_from_token(token)
         if not email:
             st.error("❌ Failed to extract email from token.")
             st.stop()
