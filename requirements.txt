@@ -21,3 +21,6 @@ requests-oauthlib==2.0.0
 
 # Streamlit Extras
 streamlit-extras==0.3.4
+
+#Security
+werkzeug==3.0.1
