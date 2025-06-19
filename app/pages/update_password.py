@@ -1,7 +1,9 @@
 #app/pages/update_password.py
 import sys
 import os
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 import streamlit as st
 from utils.tokens import verify_token, decode_token
 from backend.auth import update_user_password, get_email_from_token
