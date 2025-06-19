@@ -1,6 +1,8 @@
 #app/pages/update_password.py
 import sys
 import os
+import inspect
+import utils.tokens
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -16,6 +18,9 @@ token = st.query_params.get("token")
 if not token:
     st.error("Missing token in URL.")
     st.stop()
+
+print("✅ Available functions in tokens.py:", dir(utils.tokens))
+print("📄 decode_token source:", inspect.getsource(utils.tokens.decode_token))
 
 # ✅ Let user fill out form before verifying token
 with st.form("reset_password_form"):
