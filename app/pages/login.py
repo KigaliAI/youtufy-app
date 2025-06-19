@@ -3,9 +3,6 @@ import os
 import sys
 import streamlit as st
 from dotenv import load_dotenv
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
 from backend.auth import validate_user, get_user_by_email
 
 load_dotenv()

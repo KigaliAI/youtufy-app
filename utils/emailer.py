@@ -1,9 +1,7 @@
 # utils/emailer.py
-
 import smtplib
 from email.message import EmailMessage
 import streamlit as st
-
 def send_email(to_email: str, subject: str, body: str):
     """
     Send a plain-text email via SMTP using credentials stored in Streamlit secrets.

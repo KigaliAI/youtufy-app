@@ -3,14 +3,11 @@ import os
 import sys
 import streamlit as st
 from dotenv import load_dotenv
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
 from backend.oauth import (
     get_flow,
     get_auth_flow,
     get_credentials_from_code,
-    refresh_credentials,
+    refresh_credentials
 )
 from backend.auth import store_oauth_credentials
 

@@ -1,9 +1,6 @@
 # app/components/channel_card.py
 import streamlit as st
 import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-
 def channel_card(channel_data):
     """Render a styled card for a YouTube channel."""
 
