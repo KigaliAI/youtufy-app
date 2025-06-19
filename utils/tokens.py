@@ -1,4 +1,5 @@
 #utils/tokens.py
+import sqlite3
 import sys
 import hashlib
 import secrets
@@ -36,6 +37,19 @@ def verify_token(provided_token: str, stored_token: str) -> bool:
         return False
 
 def decode_token(token: str) -> str | None:
-    # Stub: override with logic that returns email for a given token
-    return None
+    """
+    Decode token by looking up the associated email in the database.
+    """
+    DB_PATH = st.secrets.get("USER_DB")
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT email FROM users WHERE token = ?", (token,))
+        row = cur.fetchone()
+        conn.close()
+        return row[0] if row else None
+    except Exception as e:
+        print("❌ Error decoding token:", e)
+        return None
+
 
