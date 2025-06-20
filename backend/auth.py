@@ -35,7 +35,7 @@ def get_user_by_email(email: str):
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("SELECT email, username, password FROM users WHERE email = ?", (email,))
+        cursor.execute("SELECT email, password, verified, token, token_expiry FROM users WHERE email = ?", (email,))
         user = cursor.fetchone()
         conn.close()
         return user
